@@ -402,6 +402,8 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
+let _lastLocalSave = 0;
+let _unsubscribeSync = null;
 const BACKEND_URL = 'https://planeamiento-alcanza-production.up.railway.app';
 
 // ══════════════════════════════════════════════════════════════════
@@ -847,7 +849,48 @@ async function loadFromFirestore(){
     load();
   }
 }
+function refreshCurrentPage(){
+  if(typeof curPage==='undefined')return;
+  if(curPage.startsWith('la-'))renderLA(curPage.replace('la-',''));
+  else if(curPage.startsWith('pm-'))renderPM(curPage.replace('pm-',''));
+  else if(curPage.startsWith('ppc-'))renderPPC(curPage.replace('ppc-',''));
+  else if(curPage.startsWith('ar-'))renderAR(curPage.replace('ar-',''));
+  else if(curPage==='dashboard')updateDash();
+  else if(curPage==='dashboard-global')renderDashGlobal();
+  else if(curPage==='admin')renderAdminPanel();
+}
+function startRealtimeSync(onReady){
+  if(_unsubscribeSync){_unsubscribeSync();_unsubscribeSync=null;}
+  let initialized=false;
+  try{
+    _unsubscribeSync=db.collection('planeamientos').doc(SK).onSnapshot(
+      snap=>{
+        if(!initialized){
+          initialized=true;
+          if(snap.exists){S=snap.data();}else{S=defaultState();save();}
+          if(onReady)onReady();
+        }else{
+          if(!snap.exists)return;
+          S=snap.data();
+          localStorage.setItem(SK,JSON.stringify(S));
+          if(!S.projects)S.projects=[];
+          initProjects();
+          refreshCurrentPage();
+          if(Date.now()-_lastLocalSave>2000)showToast('\u21ba Datos sincronizados');
+        }
+      },
+      err=>{
+        console.warn('onSnapshot error:',err.message);
+        loadFromFirestore().then(()=>{if(onReady)onReady();});
+      }
+    );
+  }catch(e){
+    console.warn('onSnapshot no disponible:',e.message);
+    loadFromFirestore().then(()=>{if(onReady)onReady();});
+  }
+}
 function save(){
+  _lastLocalSave=Date.now();
   localStorage.setItem(SK,JSON.stringify(S));
   if(currentUser){
     db.collection('planeamientos').doc(SK).set(S)
@@ -1955,14 +1998,17 @@ auth.onAuthStateChanged(async user=>{
     const adminNav = document.getElementById('nav-admin-section');
     if(adminNav) adminNav.style.display='block';
   }
-  // Load data
-  await loadFromFirestore();
-  if(!S.projects) S.projects=[];
+  // Load data with real-time sync
+  await new Promise(resolve=>startRealtimeSync(resolve));
+  if(!S.projects)S.projects=[];
   initProjects();
   updateDash();
 });
 function logout(){
-  if(confirm('¿Cerrar sesión?'))auth.signOut().then(()=>window.location.href='login.html');
+  if(confirm('¿Cerrar sesión?')){
+    if(_unsubscribeSync){_unsubscribeSync();_unsubscribeSync=null;}
+    auth.signOut().then(()=>window.location.href='login.html');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
