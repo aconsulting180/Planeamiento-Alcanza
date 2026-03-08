@@ -404,6 +404,8 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
 let _lastLocalSave = 0;
 let _unsubscribeSync = null;
+let _syncInterval = null;
+let _remoteVersion = '';
 const BACKEND_URL = 'https://planeamiento-alcanza-production.up.railway.app';
 
 // ══════════════════════════════════════════════════════════════════
@@ -859,35 +861,56 @@ function refreshCurrentPage(){
   else if(curPage==='dashboard-global')renderDashGlobal();
   else if(curPage==='admin')renderAdminPanel();
 }
+function applyRemoteUpdate(data){
+  const v=JSON.stringify(data);
+  if(v===_remoteVersion)return;
+  _remoteVersion=v;
+  if(Date.now()-_lastLocalSave<3000)return;
+  S=data;
+  localStorage.setItem(SK,JSON.stringify(S));
+  if(!S.projects)S.projects=[];
+  try{initProjects();}catch(e){console.warn('initProjects sync error:',e);}
+  try{refreshCurrentPage();}catch(e){console.warn('refreshPage sync error:',e);}
+  showToast('\u21ba Datos sincronizados');
+}
 function startRealtimeSync(onReady){
   if(_unsubscribeSync){_unsubscribeSync();_unsubscribeSync=null;}
-  let initialized=false;
+  if(_syncInterval){clearInterval(_syncInterval);_syncInterval=null;}
+  let ready=false;
+  function markReady(){
+    if(!ready){ready=true;if(onReady)onReady();}
+  }
+  // Primary: onSnapshot
   try{
     _unsubscribeSync=db.collection('planeamientos').doc(SK).onSnapshot(
+      {includeMetadataChanges:false},
       snap=>{
-        if(!initialized){
-          initialized=true;
-          if(snap.exists){S=snap.data();}else{S=defaultState();save();}
-          if(onReady)onReady();
-        }else{
-          if(!snap.exists)return;
+        if(!snap.exists){if(!ready){S=defaultState();save();markReady();}return;}
+        if(!ready){
           S=snap.data();
-          localStorage.setItem(SK,JSON.stringify(S));
-          if(!S.projects)S.projects=[];
-          initProjects();
-          refreshCurrentPage();
-          if(Date.now()-_lastLocalSave>2000)showToast('\u21ba Datos sincronizados');
+          _remoteVersion=JSON.stringify(S);
+          markReady();
+        }else{
+          applyRemoteUpdate(snap.data());
         }
       },
       err=>{
-        console.warn('onSnapshot error:',err.message);
-        loadFromFirestore().then(()=>{if(onReady)onReady();});
+        console.warn('onSnapshot error (usando polling):',err.message);
+        if(!ready)loadFromFirestore().then(markReady);
       }
     );
   }catch(e){
     console.warn('onSnapshot no disponible:',e.message);
-    loadFromFirestore().then(()=>{if(onReady)onReady();});
+    loadFromFirestore().then(markReady);
   }
+  // Backup: polling cada 10s garantizado
+  _syncInterval=setInterval(async()=>{
+    if(!currentUser)return;
+    try{
+      const snap=await db.collection('planeamientos').doc(SK).get({source:'server'});
+      if(snap.exists)applyRemoteUpdate(snap.data());
+    }catch(e){console.warn('Poll sync error:',e.message);}
+  },10000);
 }
 function save(){
   _lastLocalSave=Date.now();
@@ -2007,6 +2030,7 @@ auth.onAuthStateChanged(async user=>{
 function logout(){
   if(confirm('¿Cerrar sesión?')){
     if(_unsubscribeSync){_unsubscribeSync();_unsubscribeSync=null;}
+    if(_syncInterval){clearInterval(_syncInterval);_syncInterval=null;}
     auth.signOut().then(()=>window.location.href='login.html');
   }
 }
