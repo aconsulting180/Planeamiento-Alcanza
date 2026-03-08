@@ -1,0 +1,26 @@
+# ──────────────────────────────────────────────
+# CREDENCIALES — NUNCA subir a GitHub
+# ──────────────────────────────────────────────
+backend/serviceAccountKey.json
+backend/.env
+*.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.pyc
+
+# Node
+backend/node_modules/
+node_modules/
+
+# VS Code
+.vscode/
+
+# Temporales
+.tmp.driveupload/
+.tmp.drivedownload/
+*.log

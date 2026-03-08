@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Planeamiento 2026 - LPS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --dark-blue:#1B2A4A;--med-blue:#2E5090;--light-blue:#4472C4;--pale-blue:#D6E4F0;
+  --very-pale:#EDF2F9;--green:#548235;--light-green:#C6EFCE;--dark-green:#006100;
+  --red:#C00000;--light-red:#FFC7CE;--dark-red:#9C0006;--yellow:#FFD966;
+  --light-yellow:#FFEB9C;--orange:#ED7D31;--white:#FFFFFF;--gray:#D9D9D9;
+  --dark-gray:#595959;--radius:10px;--shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Calibri,sans-serif;background:linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);min-height:100vh;color:var(--dark-blue);}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:250px;background:var(--dark-blue);padding:20px 0;z-index:100;overflow-y:auto;box-shadow:4px 0 20px rgba(0,0,0,0.2);transition:width 0.3s ease;}
+.sidebar.collapsed{width:60px;}
+.sidebar.collapsed .logo h1,.sidebar.collapsed .logo small,.sidebar.collapsed .area-label,.sidebar.collapsed .nav-item span,.sidebar.collapsed .save-status .status-text,.sidebar.collapsed .credit{display:none;}
+.sidebar.collapsed .nav-item{justify-content:center;padding:14px;}
+.sidebar.collapsed .toggle-btn{transform:rotate(180deg);}
+.sidebar .logo{text-align:center;padding:10px 20px 25px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:15px;position:relative;}
+.sidebar .logo h1{color:white;font-size:18px;font-weight:700;letter-spacing:1px;}
+.sidebar .logo small{color:var(--pale-blue);font-size:11px;display:block;margin-top:4px;}
+.toggle-btn{position:absolute;top:50%;right:-14px;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:var(--light-blue);color:white;border:2px solid var(--dark-blue);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;z-index:101;transition:transform 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+.toggle-btn:hover{background:var(--med-blue);}
+.sidebar .credit{text-align:center;color:rgba(255,255,255,0.25);font-size:9px;padding:4px 10px;letter-spacing:0.5px;}
+.sidebar .area-label{color:rgba(255,255,255,0.5);font-size:10px;text-transform:uppercase;letter-spacing:2px;padding:12px 20px 6px;font-weight:600;}
+.sidebar .nav-item{display:flex;align-items:center;gap:10px;padding:12px 20px;color:rgba(255,255,255,0.7);cursor:pointer;transition:all 0.2s;font-size:13px;border-left:3px solid transparent;}
+.sidebar .nav-item:hover{background:rgba(255,255,255,0.08);color:white;}
+.sidebar .nav-item.active{background:rgba(255,255,255,0.12);color:white;border-left-color:var(--light-blue);font-weight:600;}
+.sidebar .nav-item .icon{font-size:16px;width:22px;text-align:center;}
+.sidebar .nav-item .icon i{font-size:17px;vertical-align:-1px;}
+.sidebar .save-status{position:absolute;bottom:35px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.4);font-size:11px;padding:10px;}
+.sidebar .save-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:middle;}
+.main{margin-left:250px;padding:25px 30px;min-height:100vh;transition:margin-left 0.3s ease;}
+.main.collapsed{margin-left:60px;}
+.page{display:none;}.page.active{display:block;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+.page-header h2{font-size:22px;color:var(--dark-blue);display:flex;align-items:center;gap:10px;}
+.area-tag{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.area-tag.gis{background:var(--med-blue);color:white;}.area-tag.metro{background:var(--green);color:white;}.area-tag.inmob{background:var(--orange);color:white;}.area-tag.const{background:#7B2D8E;color:white;}.area-tag.rental{background:#00897B;color:white;}
+.btn{padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--light-blue);color:white;}.btn-primary:hover{background:var(--med-blue);transform:translateY(-1px);}
+.btn-success{background:var(--green);color:white;}.btn-success:hover{background:#3d6128;transform:translateY(-1px);}
+.btn-danger{background:var(--red);color:white;}.btn-danger:hover{background:#a00000;}
+.btn-outline{background:white;color:var(--dark-blue);border:1.5px solid var(--gray);}.btn-outline:hover{border-color:var(--light-blue);color:var(--light-blue);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px;}
+.btn-pdf{background:linear-gradient(135deg,#C00000,#e63946);color:white;box-shadow:0 2px 8px rgba(192,0,0,0.25);}
+.btn-pdf:hover{background:linear-gradient(135deg,#a00000,#c5303d);transform:translateY(-1px);box-shadow:0 4px 14px rgba(192,0,0,0.35);}
+.btn-pdf i,.btn-success i,.btn-danger i,.btn-primary i,.btn-outline i{font-size:14px;vertical-align:-1px;}
+.card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+.card-header{padding:14px 20px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.card-body{padding:16px 20px;}
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+/* Dashboard */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:25px;}
+.dash-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;cursor:pointer;transition:all 0.25s;border-left:4px solid var(--light-blue);position:relative;overflow:hidden;}
+.dash-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,0.12);}
+.dash-card .dash-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;}
+.dash-card h3{font-size:14px;margin-bottom:5px;}.dash-card p{font-size:12px;color:var(--dark-gray);}
+.dash-card.gis{border-left-color:var(--med-blue);}.dash-card.gis .dash-icon{background:var(--pale-blue);color:var(--med-blue);}
+.dash-card.metro{border-left-color:var(--green);}.dash-card.metro .dash-icon{background:var(--light-green);color:var(--green);}
+.dash-card.inmob{border-left-color:var(--orange);}.dash-card.inmob .dash-icon{background:#FFF3E0;color:var(--orange);}
+.dash-card.const{border-left-color:#7B2D8E;}.dash-card.const .dash-icon{background:#F3E5F5;color:#7B2D8E;}
+.dash-card.rental{border-left-color:#00897B;}.dash-card.rental .dash-icon{background:#E0F2F1;color:#00897B;}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+.stat-card{background:white;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);text-align:center;}
+.stat-card .stat-value{font-size:28px;font-weight:700;}.stat-card .stat-label{font-size:11px;color:var(--dark-gray);margin-top:3px;}
+/* Tables */
+.table-wrapper{overflow-x:auto;border-radius:var(--radius);max-height:72vh;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+table th{background:var(--dark-blue);color:white;padding:10px 8px;font-weight:600;text-align:center;position:sticky;top:0;z-index:10;white-space:nowrap;font-size:11px;}
+table th.month-header{background:var(--med-blue);}
+table th.sub-header{background:var(--light-blue);font-size:10px;top:36px;z-index:9;}
+table td{padding:6px 5px;border-bottom:1px solid #eee;vertical-align:middle;}
+table tr:hover td{background:var(--very-pale);}
+table tr.og-row td{background:var(--dark-blue)!important;color:white;font-weight:700;font-size:13px;padding:10px 8px;}
+table tr.oe-row td{background:var(--med-blue)!important;color:white;font-weight:600;font-size:12px;padding:8px;}
+td.act-name{text-align:left;max-width:280px;}
+td.center{text-align:center;}
+/* Lookahead cells */
+td.la-cell{width:22px;min-width:22px;height:22px;text-align:center;cursor:pointer;user-select:none;transition:background 0.15s;border:1px solid #e8e8e8;}
+td.la-on{background:var(--light-blue)!important;border-color:var(--med-blue)!important;}
+td.la-off{background:white;}
+td.la-cell:hover{background:var(--pale-blue)!important;}
+td.plan-on{background:var(--light-green)!important;color:var(--dark-green);font-weight:700;text-align:center;}
+/* Inputs */
+select.cell-select{width:100%;border:1px solid #ddd;border-radius:5px;padding:4px 3px;font-size:11px;background:white;cursor:pointer;color:var(--dark-blue);text-align:center;}
+select.cell-select:focus{border-color:var(--light-blue);outline:none;box-shadow:0 0 0 2px rgba(68,114,196,0.2);}
+input.cell-input{width:55px;border:1px solid #ddd;border-radius:5px;padding:4px;font-size:11px;text-align:center;}
+input.cell-input:focus{border-color:var(--light-blue);outline:none;box-shadow:0 0 0 2px rgba(68,114,196,0.2);}
+.chk-wrapper{text-align:center;}.chk-wrapper input[type="checkbox"]{width:18px;height:18px;cursor:pointer;accent-color:var(--green);}
+/* Editable cell on dblclick */
+.editable{cursor:text;min-height:20px;padding:2px 4px;border-radius:3px;}
+.editable:hover{background:rgba(68,114,196,0.07);}
+.editable:focus{outline:2px solid var(--light-blue);background:white;}
+/* Summary */
+.summary-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px;}
+.summary-item{background:white;border-radius:8px;padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--light-blue);}
+.summary-item .val{font-size:26px;font-weight:700;}.summary-item .lbl{font-size:11px;color:var(--dark-gray);margin-top:2px;}
+/* Month tabs */
+.month-tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;}
+.month-tab{padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;background:white;border:1.5px solid var(--gray);transition:all 0.2s;color:var(--dark-gray);}
+.month-tab:hover{border-color:var(--light-blue);color:var(--light-blue);}
+.month-tab.active{background:var(--light-blue);color:white;border-color:var(--light-blue);}
+/* Charts */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.chart-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;}
+.chart-card h4{font-size:13px;color:var(--dark-gray);margin-bottom:12px;}
+/* AR */
+.ar-form-grid{display:grid;grid-template-columns:1fr 1fr 2fr 1fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:12px;align-items:end;}
+.ar-form-grid .fg{display:flex;flex-direction:column;gap:3px;}
+.ar-form-grid label{font-size:10px;font-weight:600;color:var(--dark-gray);text-transform:uppercase;}
+.ar-form-grid input,.ar-form-grid select{border:1.5px solid #ddd;border-radius:6px;padding:8px 10px;font-size:12px;font-family:inherit;transition:border 0.2s;}
+.ar-form-grid input:focus,.ar-form-grid select:focus{border-color:var(--light-blue);outline:none;}
+/* PPC vals */
+.ppc-value{font-size:22px;font-weight:700;}.ppc-good{color:var(--dark-green);}.ppc-bad{color:var(--red);}
+/* Toast */
+.toast{position:fixed;bottom:30px;right:30px;background:var(--dark-blue);color:white;padding:12px 22px;border-radius:10px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,0.2);z-index:1000;transform:translateY(100px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+/* Modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;justify-content:center;align-items:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:white;border-radius:12px;padding:28px;max-width:520px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.modal h3{margin-bottom:16px;color:var(--dark-blue);}
+.modal .fg{margin-bottom:12px;}
+.modal .fg label{display:block;font-size:11px;font-weight:600;color:var(--dark-gray);margin-bottom:4px;text-transform:uppercase;}
+.modal .fg input,.modal .fg select,.modal .fg textarea{width:100%;border:1.5px solid #ddd;border-radius:6px;padding:9px 12px;font-size:13px;font-family:inherit;}
+.modal .fg input:focus,.modal .fg select:focus,.modal .fg textarea:focus{border-color:var(--light-blue);outline:none;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+/* Delete btn in row */
+.row-del{opacity:0;transition:opacity 0.15s;cursor:pointer;color:var(--red);font-size:14px;border:none;background:none;padding:2px 5px;}
+tr:hover .row-del{opacity:1;}
+.row-move{opacity:0;transition:opacity 0.15s;cursor:pointer;color:var(--light-blue);font-size:10px;border:none;background:none;padding:1px 2px;}
+tr:hover .row-move{opacity:1;}
+/* Responsive */
+@media(max-width:1200px){.charts-grid{grid-template-columns:1fr;}.ar-form-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:768px){.sidebar{width:60px;}.sidebar .logo h1,.sidebar .logo small,.sidebar .area-label,.sidebar .nav-item span,.sidebar .save-status .status-text,.sidebar .credit{display:none;}.sidebar .nav-item{justify-content:center;padding:14px;}.main{margin-left:60px;padding:15px;}.stats-row{grid-template-columns:1fr 1fr;}.toggle-btn{display:none;}}
+@media print{.sidebar{display:none;}.main{margin-left:0;}.btn,.toolbar{display:none;}}
+/* User profile in sidebar */
+.sidebar-user{padding:10px 14px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;}
+.sidebar-user img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.25);flex-shrink:0;background:#2E5090;}
+.sidebar-user .u-info{flex:1;overflow:hidden;min-width:0;}
+.sidebar-user .u-name{color:white;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-user .u-email{color:rgba(255,255,255,0.45);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-user .btn-logout{background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.55);border-radius:5px;padding:5px 7px;cursor:pointer;font-size:13px;transition:all 0.2s;flex-shrink:0;}
+.sidebar-user .btn-logout:hover{background:rgba(220,30,30,0.25);border-color:rgba(220,30,30,0.5);color:white;}
+.sidebar.collapsed .u-info,.sidebar.collapsed .btn-logout{display:none;}
+/* ── Admin Panel ─────────────────────────────────────────────────────────── */
+#nav-admin-section .area-label{color:rgba(255,200,0,0.7);}
+.admin-badge{display:inline-block;background:rgba(255,200,0,0.18);color:#ffd600;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:5px;font-weight:700;vertical-align:middle;}
+/* ── Crear Proyecto ──────────────────────────────────────────────────────── */
+.nav-item-add{margin:8px 10px 4px;border:1.5px dashed rgba(255,255,255,0.25);border-radius:8px;color:rgba(255,255,255,0.55)!important;font-size:12px!important;}
+.nav-item-add:hover{background:rgba(255,255,255,0.1)!important;border-color:rgba(255,255,255,0.5);color:white!important;}
+.sidebar.collapsed .nav-item-add{margin:8px 4px 4px;}
+/* ── Project Create Modal ────────────────────────────────────────────────── */
+.proj-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;}
+.proj-modal{background:white;border-radius:14px;padding:30px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.18);}
+.proj-modal h3{margin:0 0 20px;font-size:17px;color:#1B2D4B;display:flex;align-items:center;gap:8px;}
+.proj-modal .fg{margin-bottom:14px;}
+.proj-modal .fg label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px;}
+.proj-modal .fg input,.proj-modal .fg select{width:100%;box-sizing:border-box;border:1.5px solid #ddd;border-radius:7px;padding:9px 11px;font-size:13px;font-family:inherit;}
+.proj-modal .fg input:focus,.proj-modal .fg select:focus{border-color:#2E5090;outline:none;}
+.proj-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.proj-color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.proj-color-btn{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s;}
+.proj-color-btn.selected{border-color:#1B2A4A;transform:scale(1.2);}
+.proj-list-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#f7f9fc;margin-bottom:6px;}
+.proj-list-item .proj-name{flex:1;font-weight:600;font-size:13px;}
+.proj-list-item .badge-color{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.admin-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.admin-table-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px;background:white;}
+.admin-table thead tr{background:#1B2D4B;color:white;}
+.admin-table th{padding:11px 14px;font-weight:600;white-space:nowrap;text-align:left;}
+.admin-table td{padding:10px 14px;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+.admin-table tr:last-child td{border-bottom:none;}
+.admin-table tr:hover td{background:#f7f9fc;}
+.role-badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;}
+.role-badge.admin{background:#fff3cd;color:#856404;}
+.role-badge.user{background:#d1ecf1;color:#0c5460;}
+.status-chip{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;}
+.status-chip.active{background:#d4edda;color:#155724;}
+.status-chip.inactive{background:#f8d7da;color:#721c24;}
+.admin-action-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.admin-action-btns button{border:none;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-weight:600;transition:opacity .15s;}
+.admin-action-btns button:hover{opacity:.8;}
+.btn-role{background:#e8f4fd;color:#1565c0;}
+.btn-disable{background:#fdecea;color:#c62828;}
+.btn-enable{background:#e8f5e9;color:#2e7d32;}
+.btn-reset{background:#fff8e1;color:#e65100;}
+.admin-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.admin-modal{background:white;border-radius:14px;padding:30px 32px;width:420px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.18);}
+.admin-modal h3{margin:0 0 20px;font-size:17px;color:#1B2D4B;}
+.admin-modal .fg{margin-bottom:14px;}
+.admin-modal .fg label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px;}
+.admin-modal .fg input,.admin-modal .fg select{width:100%;box-sizing:border-box;border:1.5px solid #ddd;border-radius:7px;padding:9px 11px;font-size:13px;font-family:inherit;}
+.admin-modal .fg input:focus,.admin-modal .fg select:focus{border-color:#2E5090;outline:none;}
+.admin-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+  <div class="logo">
+    <h1><i class="ri-bar-chart-grouped-line"></i> LPS 2026</h1><small>Last Planner System</small>
+    <button class="toggle-btn" onclick="toggleSidebar()" title="Contraer/Expandir"><i class="ri-arrow-left-s-line"></i></button>
+  </div>
+  <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon"><i class="ri-dashboard-3-line"></i></span><span>Dashboard</span></div>
+  <div class="nav-item" onclick="showPage('dashboard-global')"><span class="icon"><i class="ri-pie-chart-2-line"></i></span><span>Dashboard Global</span></div>
+  <div class="area-label">Inmobiliaria</div>
+  <div class="nav-item" onclick="showPage('la-inmob')"><span class="icon"><i class="ri-calendar-schedule-line"></i></span><span>Lookahead</span></div>
+  <div class="nav-item" onclick="showPage('pm-inmob')"><span class="icon"><i class="ri-task-line"></i></span><span>Plan Mensual</span></div>
+  <div class="nav-item" onclick="showPage('ppc-inmob')"><span class="icon"><i class="ri-line-chart-line"></i></span><span>PPC</span></div>
+  <div class="nav-item" onclick="showPage('ar-inmob')"><span class="icon"><i class="ri-alarm-warning-line"></i></span><span>Restricciones</span></div>
+  <div class="area-label">Constructora</div>
+  <div class="nav-item" onclick="showPage('la-const')"><span class="icon"><i class="ri-calendar-schedule-line"></i></span><span>Lookahead</span></div>
+  <div class="nav-item" onclick="showPage('pm-const')"><span class="icon"><i class="ri-task-line"></i></span><span>Plan Mensual</span></div>
+  <div class="nav-item" onclick="showPage('ppc-const')"><span class="icon"><i class="ri-line-chart-line"></i></span><span>PPC</span></div>
+  <div class="nav-item" onclick="showPage('ar-const')"><span class="icon"><i class="ri-alarm-warning-line"></i></span><span>Restricciones</span></div>
+  <div class="area-label">GIS — Postventa</div>
+  <div class="nav-item" onclick="showPage('la-gis')"><span class="icon"><i class="ri-calendar-schedule-line"></i></span><span>Lookahead</span></div>
+  <div class="nav-item" onclick="showPage('pm-gis')"><span class="icon"><i class="ri-task-line"></i></span><span>Plan Mensual</span></div>
+  <div class="nav-item" onclick="showPage('ppc-gis')"><span class="icon"><i class="ri-line-chart-line"></i></span><span>PPC</span></div>
+  <div class="nav-item" onclick="showPage('ar-gis')"><span class="icon"><i class="ri-alarm-warning-line"></i></span><span>Restricciones</span></div>
+  <div class="area-label">Metropolitano — Diseño</div>
+  <div class="nav-item" onclick="showPage('la-metro')"><span class="icon"><i class="ri-calendar-schedule-line"></i></span><span>Lookahead</span></div>
+  <div class="nav-item" onclick="showPage('pm-metro')"><span class="icon"><i class="ri-task-line"></i></span><span>Plan Mensual</span></div>
+  <div class="nav-item" onclick="showPage('ppc-metro')"><span class="icon"><i class="ri-line-chart-line"></i></span><span>PPC</span></div>
+  <div class="nav-item" onclick="showPage('ar-metro')"><span class="icon"><i class="ri-alarm-warning-line"></i></span><span>Restricciones</span></div>
+  <div class="area-label">CEQ Rental</div>
+  <div class="nav-item" onclick="showPage('la-rental')"><span class="icon"><i class="ri-calendar-schedule-line"></i></span><span>Lookahead</span></div>
+  <div class="nav-item" onclick="showPage('pm-rental')"><span class="icon"><i class="ri-task-line"></i></span><span>Plan Mensual</span></div>
+  <div class="nav-item" onclick="showPage('ppc-rental')"><span class="icon"><i class="ri-line-chart-line"></i></span><span>PPC</span></div>
+  <div class="nav-item" onclick="showPage('ar-rental')"><span class="icon"><i class="ri-alarm-warning-line"></i></span><span>Restricciones</span></div>
+  <!-- Proyectos adicionales generados dinámicamente -->
+  <div id="nav-extra-projects"></div>
+  <!-- Crear Proyecto (siempre visible) -->
+  <div class="nav-item nav-item-add" onclick="openCreateProjectModal()" title="Crear nuevo proyecto">
+    <span class="icon"><i class="ri-add-circle-line"></i></span><span>Crear Proyecto</span>
+  </div>
+  <!-- Administración (solo admin, siempre al final) -->
+  <div id="nav-admin-section" style="display:none">
+    <div class="area-label">Administración <span class="admin-badge">ADMIN</span></div>
+    <div class="nav-item" onclick="showPage('admin')"><span class="icon"><i class="ri-shield-user-line"></i></span><span>Gestión de Usuarios</span></div>
+  </div>
+  <div class="sidebar-user" id="sidebar-user" style="display:none">
+    <img id="user-avatar" src="" alt="" onerror="this.src='';this.style.display='none'">
+    <div class="u-info">
+      <div class="u-name" id="user-name">—</div>
+      <div class="u-email" id="user-email"></div>
+    </div>
+    <button class="btn-logout" onclick="logout()" title="Cerrar sesión"><i class="ri-logout-box-line"></i></button>
+  </div>
+  <div class="save-status"><span class="dot"></span><span class="status-text"> Guardado automático</span></div>
+  <div class="credit">desarrollado por WYLCH</div>
+</div>
+
+<div class="main">
+  <div class="toast" id="toast"></div>
+
+  <!-- MODAL for adding OG/OE/Activity -->
+  <div class="modal-overlay" id="modal-add">
+    <div class="modal">
+      <h3 id="modal-title">Agregar</h3>
+      <div id="modal-body"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" id="modal-ok">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <h2><i class="ri-dashboard-3-line" style="color:var(--light-blue)"></i> Dashboard — Planeamiento 2026</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-pdf btn-sm" onclick="exportPagePDF('page-dashboard','landscape','a4')"><i class="ri-file-pdf-2-line"></i> PDF</button>
+        <button class="btn btn-success" onclick="exportAll()"><i class="ri-file-excel-2-line"></i> Exportar Todo a Excel</button>
+        <button class="btn btn-danger" onclick="resetAll()"><i class="ri-delete-bin-6-line"></i> Reiniciar Datos</button>
+      </div>
+    </div>
+    <div id="dash-stats" class="stats-row"></div>
+    <h3 style="margin:16px 0 10px;color:var(--orange)"><i class="ri-home-office-line"></i> Inmobiliaria</h3>
+    <div class="dash-grid">
+      <div class="dash-card inmob" onclick="showPage('la-inmob')"><div class="dash-icon"><i class="ri-calendar-schedule-line"></i></div><h3>Lookahead Anual</h3><p>Cronograma semanal editable</p></div>
+      <div class="dash-card inmob" onclick="showPage('pm-inmob')"><div class="dash-icon"><i class="ri-task-line"></i></div><h3>Plan Mensual</h3><p>Estado y avance por actividad</p></div>
+      <div class="dash-card inmob" onclick="showPage('ppc-inmob')"><div class="dash-icon"><i class="ri-line-chart-line"></i></div><h3>PPC</h3><p>Porcentaje de Plan Cumplido</p></div>
+      <div class="dash-card inmob" onclick="showPage('ar-inmob')"><div class="dash-icon"><i class="ri-alarm-warning-line"></i></div><h3>Restricciones</h3><p>Registro de restricciones</p></div>
+    </div>
+    <h3 style="margin:16px 0 10px;color:#7B2D8E"><i class="ri-building-2-line"></i> Constructora</h3>
+    <div class="dash-grid">
+      <div class="dash-card const" onclick="showPage('la-const')"><div class="dash-icon"><i class="ri-calendar-schedule-line"></i></div><h3>Lookahead Anual</h3><p>Cronograma semanal editable</p></div>
+      <div class="dash-card const" onclick="showPage('pm-const')"><div class="dash-icon"><i class="ri-task-line"></i></div><h3>Plan Mensual</h3><p>Estado y avance por actividad</p></div>
+      <div class="dash-card const" onclick="showPage('ppc-const')"><div class="dash-icon"><i class="ri-line-chart-line"></i></div><h3>PPC</h3><p>Porcentaje de Plan Cumplido</p></div>
+      <div class="dash-card const" onclick="showPage('ar-const')"><div class="dash-icon"><i class="ri-alarm-warning-line"></i></div><h3>Restricciones</h3><p>Registro de restricciones</p></div>
+    </div>
+    <h3 style="margin:16px 0 10px;color:var(--med-blue)"><i class="ri-building-4-line"></i> GIS — Postventa</h3>
+    <div class="dash-grid">
+      <div class="dash-card gis" onclick="showPage('la-gis')"><div class="dash-icon"><i class="ri-calendar-schedule-line"></i></div><h3>Lookahead Anual</h3><p>Cronograma semanal editable</p></div>
+      <div class="dash-card gis" onclick="showPage('pm-gis')"><div class="dash-icon"><i class="ri-task-line"></i></div><h3>Plan Mensual</h3><p>Estado y avance por actividad</p></div>
+      <div class="dash-card gis" onclick="showPage('ppc-gis')"><div class="dash-icon"><i class="ri-line-chart-line"></i></div><h3>PPC</h3><p>Porcentaje de Plan Cumplido</p></div>
+      <div class="dash-card gis" onclick="showPage('ar-gis')"><div class="dash-icon"><i class="ri-alarm-warning-line"></i></div><h3>Restricciones</h3><p>Registro de restricciones</p></div>
+    </div>
+    <h3 style="margin:16px 0 10px;color:var(--green)"><i class="ri-train-line"></i> Metropolitano — Diseño</h3>
+    <div class="dash-grid">
+      <div class="dash-card metro" onclick="showPage('la-metro')"><div class="dash-icon"><i class="ri-calendar-schedule-line"></i></div><h3>Lookahead Anual</h3><p>Cronograma semanal editable</p></div>
+      <div class="dash-card metro" onclick="showPage('pm-metro')"><div class="dash-icon"><i class="ri-task-line"></i></div><h3>Plan Mensual</h3><p>Estado y avance por actividad</p></div>
+      <div class="dash-card metro" onclick="showPage('ppc-metro')"><div class="dash-icon"><i class="ri-line-chart-line"></i></div><h3>PPC</h3><p>Porcentaje de Plan Cumplido</p></div>
+      <div class="dash-card metro" onclick="showPage('ar-metro')"><div class="dash-icon"><i class="ri-alarm-warning-line"></i></div><h3>Restricciones</h3><p>Registro de restricciones</p></div>
+    </div>
+    <h3 style="margin:16px 0 10px;color:#00897B"><i class="ri-tools-line"></i> CEQ Rental</h3>
+    <div class="dash-grid">
+      <div class="dash-card rental" onclick="showPage('la-rental')"><div class="dash-icon"><i class="ri-calendar-schedule-line"></i></div><h3>Lookahead Anual</h3><p>Cronograma semanal editable</p></div>
+      <div class="dash-card rental" onclick="showPage('pm-rental')"><div class="dash-icon"><i class="ri-task-line"></i></div><h3>Plan Mensual</h3><p>Estado y avance por actividad</p></div>
+      <div class="dash-card rental" onclick="showPage('ppc-rental')"><div class="dash-icon"><i class="ri-line-chart-line"></i></div><h3>PPC</h3><p>Porcentaje de Plan Cumplido</p></div>
+      <div class="dash-card rental" onclick="showPage('ar-rental')"><div class="dash-icon"><i class="ri-alarm-warning-line"></i></div><h3>Restricciones</h3><p>Registro de restricciones</p></div>
+    </div>
+    <div class="charts-grid" style="margin-top:20px">
+      <div class="chart-card"><h4>PPC Mensual — Inmobiliaria</h4><canvas id="dash-chart-ppc-inmob"></canvas></div>
+      <div class="chart-card"><h4>PPC Mensual — Constructora</h4><canvas id="dash-chart-ppc-const"></canvas></div>
+      <div class="chart-card"><h4>PPC Mensual — GIS</h4><canvas id="dash-chart-ppc-gis"></canvas></div>
+      <div class="chart-card"><h4>PPC Mensual — Metropolitano</h4><canvas id="dash-chart-ppc-metro"></canvas></div>
+      <div class="chart-card"><h4>PPC Mensual — CEQ Rental</h4><canvas id="dash-chart-ppc-rental"></canvas></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-la-gis"></div>
+  <div class="page" id="page-pm-gis"></div>
+  <div class="page" id="page-ppc-gis"></div>
+  <div class="page" id="page-ar-gis"></div>
+  <div class="page" id="page-la-metro"></div>
+  <div class="page" id="page-pm-metro"></div>
+  <div class="page" id="page-ppc-metro"></div>
+  <div class="page" id="page-ar-metro"></div>
+  <!-- DASHBOARD GLOBAL -->
+  <div class="page" id="page-dashboard-global"></div>
+
+    <div class="page" id="page-la-inmob"></div>
+  <div class="page" id="page-pm-inmob"></div>
+  <div class="page" id="page-ppc-inmob"></div>
+  <div class="page" id="page-ar-inmob"></div>
+  <div class="page" id="page-la-const"></div>
+  <div class="page" id="page-pm-const"></div>
+  <div class="page" id="page-ppc-const"></div>
+  <div class="page" id="page-ar-const"></div>
+  <div class="page" id="page-la-rental"></div>
+  <div class="page" id="page-pm-rental"></div>
+  <div class="page" id="page-ppc-rental"></div>
+  <div class="page" id="page-ar-rental"></div>
+  <!-- Páginas de proyectos adicionales -->
+  <div id="extra-project-pages"></div>
+  <div class="page" id="page-admin"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// FIREBASE — Init
+// ══════════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDc1oxoUhWU-SM1670Hfli2b3PdI5VHcYg",
+  authDomain: "planeamiento-alcanza-89ed4.firebaseapp.com",
+  projectId: "planeamiento-alcanza-89ed4",
+  storageBucket: "planeamiento-alcanza-89ed4.firebasestorage.app",
+  messagingSenderId: "767537791583",
+  appId: "1:767537791583:web:2422990459871870a551ea"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+let currentUser = null;
+const BACKEND_URL = 'http://localhost:3000';
+
+// ══════════════════════════════════════════════════════════════════
+// CONSTANTS & WEEKS
+// ══════════════════════════════════════════════════════════════════
+const MONTHS=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function getWeeks(){const w=[];let d=new Date(2026,0,5);for(let i=1;i<=52;i++){const e=new Date(d);e.setDate(e.getDate()+4);w.push({wk:i,month:d.getMonth()+1});d.setDate(d.getDate()+7);}return w;}
+const WEEKS=getWeeks();
+
+// ══════════════════════════════════════════════════════════════════
+// INITIAL DATA SEED (used only on first load)
+// ══════════════════════════════════════════════════════════════════
+const GIS_SEED = [
+ {og:"OG-01",og_desc:"Mejorar la eficiencia operativa enfocada en la satisfacción del cliente",oes:[
+  {oe:"OE-01.1",oe_desc:"Reducir el LT de atención de postventa",kpi:"% incidencias atendidas ≤48h ≥90%",acts:[
+   {cod:"A01",act:"Diagnóstico del proceso actual de atención Postventa",ent:"Mapa del proceso actual + diagnóstico",resp:"GIS",weeks:WEEKS.filter(w=>[1,2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de estándares de atención y tiempos límite",ent:"Matriz de tiempos y prioridades",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Optimización del flujo de atención Postventa",ent:"Proceso optimizado",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación de herramientas de control y seguimiento",ent:"Herramienta de control",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=3).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.2",oe_desc:"Implementar Sperant en los proyectos a entregar",kpi:"% proyectos Sperant operativo 100%",acts:[
+   {cod:"A01",act:"Definir procesos a migrar a Sperant",ent:"Alcance de implementación",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Planificación de implementación por proyecto",ent:"Cronograma implementación",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Configuración y parametrización de Sperant",ent:"Sperant configurado",resp:"GIS",weeks:WEEKS.filter(w=>[2,3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación piloto - Midori",ent:"Informe de piloto",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=1&&w.month<=6).map(w=>w.wk)},
+   {cod:"A05",act:"Implementación progresiva en demás proyectos",ent:"Reportes de desempeño",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=6).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.3",oe_desc:"Implementar Chatbot + Servicio al cliente",kpi:"% incidencias nuevos canales ≥60%",acts:[
+   {cod:"A01",act:"Definición de alcance de los nuevos canales",ent:"Documento de alcance",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Diseño del flujo de atención multicanal",ent:"Flujo multicanal",resp:"Dir./GIS/Proc.",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementación del Chatbot piloto (Midori)",ent:"Chatbot operativo",resp:"GIS",weeks:WEEKS.filter(w=>[3,4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación Servicio Atención telefónica (Midori)",ent:"Servicio telefónico",resp:"GIS",weeks:WEEKS.filter(w=>[3,4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Comunicación a clientes y puesta en marcha",ent:"Reporte de desempeño",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=4).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.4",oe_desc:"Implementar herramientas operativas y de transporte",kpi:"% atenciones con herramientas ≥80%",acts:[
+   {cod:"A01",act:"Diagnóstico de necesidades operativas en campo",ent:"Diagnóstico de necesidades",resp:"GIS",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de herramientas y medios de transporte",ent:"Listado y especificación",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Evaluación de costos y aprobación",ent:"Presupuesto aprobado",resp:"Directorio",weeks:WEEKS.filter(w=>[4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación en campo y seguimiento",ent:"Reporte de desempeño",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=4).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-02",og_desc:"Asegurar la Calidad de los proyectos a entregar",oes:[
+  {oe:"OE-02.1",oe_desc:"Elaborar Manual de Propietarios para cada proyecto",kpi:"% proyectos con Manual 100%",acts:[
+   {cod:"A01",act:"Definición de alcance y estructura del Manual",ent:"Estructura y alcance",resp:"Dir./GIS/Inmob.",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Solicitud de información de áreas involucradas",ent:"Info recopilada validada",resp:"GIS/Cal./Inmob.",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Desarrollo del contenido del Manual por proyecto",ent:"Borrador del Manual",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=4).map(w=>w.wk)},
+   {cod:"A04",act:"Revisión y validación multidisciplinaria",ent:"Manual validado",resp:"GIS/Cal./Legal",weeks:WEEKS.filter(w=>[6,9,12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Implementación y entrega al cliente",ent:"Manual entregado",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=6).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.2",oe_desc:"Implementar Procedimiento de Recepción de UI y AC",kpi:"% proyectos aplicando ≥95%",acts:[
+   {cod:"A01",act:"Definir alcance del procedimiento de Recepción",ent:"Alcance y estructura",resp:"Dir./GIS/Proc.",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Estandarización de inspecciones y control de calidad",ent:"Checklist estandarizado",resp:"GIS/CAL/Proc.",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Formalización de recepción Obra → Calidad/Postventa",ent:"Procedimiento formal",resp:"GIS/CAL/Proc.",weeks:WEEKS.filter(w=>[4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Procedimiento de entrega a clientes finales y AC",ent:"Procedimiento documentado",resp:"Dir./GIS/Proc.",weeks:WEEKS.filter(w=>[5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Estandarización de documentación técnica",ent:"Matriz documentación",resp:"GIS/CAL/Inmob.",weeks:WEEKS.filter(w=>[5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A06",act:"Implementación y capacitación",ent:"Reporte seguimiento",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=6).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.3",oe_desc:"Implementar Manual de tolerancias",kpi:"% proyectos aplicando ≥95%",acts:[
+   {cod:"A01",act:"Revisión y definición del alcance del Manual",ent:"Alcance definido",resp:"Dir./GIS/CAL",weeks:WEEKS.filter(w=>[2,3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Integración al proceso de Recepción",ent:"Manual integrado",resp:"GIS",weeks:WEEKS.filter(w=>[5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementación del Manual de Tolerancias",ent:"Actas de recepción",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=6).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.4",oe_desc:"Documentar Lecciones Aprendidas",kpi:"100% proyectos documentados",acts:[
+   {cod:"A01",act:"Definición de alcance y estructura de la matriz",ent:"Formato de matriz",resp:"GIS",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Identificación y levantamiento por proyecto",ent:"Listado consolidado",resp:"GIS",weeks:WEEKS.filter(w=>[3,4,6,7,9,10,12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementación y uso en proyectos siguientes",ent:"Matriz aplicada",resp:"Dir./GIS/Inmob.",weeks:WEEKS.filter(w=>[5,8,11].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.5",oe_desc:"Medir Satisfacción de clientes (Encuestas)",kpi:"Satisfacción ≥85%",acts:[
+   {cod:"A01",act:"Definición del enfoque y alcance",ent:"Alcance de medición",resp:"CX/GIS/Inmob.",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Diseño de la encuesta de satisfacción",ent:"Encuesta diseñada",resp:"CX/GIS/Inmob.",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Definición de herramientas y canales",ent:"Plan de aplicación",resp:"CX/GIS/Inmob.",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación encuesta (Midori, Zentric, Parque Emilio)",ent:"Encuestas aplicadas",resp:"GIS",weeks:WEEKS.filter(w=>[5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Implementación en proyectos restantes",ent:"Encuestas aplicadas",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=7).map(w=>w.wk)},
+   {cod:"A06",act:"Análisis de resultados e indicadores",ent:"Reporte satisfacción",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=7).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-03",og_desc:"Evaluar elemento diferenciador en Postventa",oes:[
+  {oe:"OE-03.1",oe_desc:"Analizar alternativas innovadoras para el servicio",kpi:"≥1 iniciativa/año",acts:[
+   {cod:"A01",act:"Definición del marco de análisis y criterios",ent:"Marco de análisis",resp:"Directorio/CX",weeks:WEEKS.filter(w=>[7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Investigación de buenas prácticas del mercado",ent:"Informe benchmarking",resp:"Directorio/CX",weeks:WEEKS.filter(w=>[7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Identificación y evaluación de alternativas",ent:"Matriz de evaluación",resp:"Directorio/CX",weeks:WEEKS.filter(w=>[9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Selección de alternativas a implementar",ent:"Alternativas seleccionadas",resp:"Directorio/CX",weeks:WEEKS.filter(w=>[11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-04",og_desc:"Ordenar la gestión de pagos a proveedores",oes:[
+  {oe:"OE-04.1",oe_desc:"Estandarizar proceso de pagos",kpi:"% pagos en plazo ≥95%",acts:[
+   {cod:"A01",act:"Levantamiento del proceso actual de pagos",ent:"Mapa del proceso",resp:"GIS/Procesos",weeks:WEEKS.filter(w=>[1,2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición del proceso estándar de gestión",ent:"Proceso de trabajo",resp:"Dir./GIS/Proc.",weeks:WEEKS.filter(w=>[3,4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Estandarización de formatos y documentación",ent:"Formatos y checklist",resp:"GIS",weeks:WEEKS.filter(w=>[3,4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Definición de tiempos y SLA",ent:"Matriz de tiempos",resp:"Dir./GIS/Proc.",weeks:WEEKS.filter(w=>[5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Implementación y seguimiento",ent:"Proceso implementado",resp:"GIS/Procesos",weeks:WEEKS.filter(w=>w.month>=5).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-05",og_desc:"Asegurar la gestión de cobranza del FG",oes:[
+  {oe:"OE-05.1",oe_desc:"Implementar sistema de control del FG",kpi:"% FG registrados ≥90%",acts:[
+   {cod:"A01",act:"Diseño de matriz de control",ent:"Matriz oficial FG",resp:"Finanzas",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Levantamiento de información y fondos retenidos",ent:"Base consolidada",resp:"GIS/Finanzas",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Integración con Finanzas (conciliación mensual)",ent:"Reporte mensual",resp:"GIS/Finanzas",weeks:WEEKS.filter(w=>w.month>=4).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación y seguimiento",ent:"Reporte seguimiento",resp:"GIS/Finanzas",weeks:WEEKS.filter(w=>w.month>=5).map(w=>w.wk)},
+  ]},
+  {oe:"OE-05.2",oe_desc:"Asegurar recuperación del FG ante incumplimientos",kpi:"% FG ejecutados ≥90%",acts:[
+   {cod:"A01",act:"Definir criterios de ejecución",ent:"Matriz de causales",resp:"GIS/Const.",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Procedimiento de notificación al proveedor",ent:"Formato estándar",resp:"GIS/Const./Proc.",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Aplicación del fondo",ent:"Registro formal",resp:"GIS/Finanzas",weeks:WEEKS.filter(w=>w.month>=4).map(w=>w.wk)},
+   {cod:"A04",act:"Cierre y reporte",ent:"Informe trimestral",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=5).map(w=>w.wk)},
+  ]},
+  {oe:"OE-05.3",oe_desc:"Reducir riesgos financieros de devoluciones indebidas",kpi:"% devoluciones conforme ≥90%",acts:[
+   {cod:"A01",act:"Definir Checklist previo a devolución",ent:"Checklist obligatorio",resp:"GIS/Const.",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Validación interáreas antes de devolución",ent:"Acta de autorización",resp:"GIS/Const./Fin.",weeks:WEEKS.filter(w=>w.month>=3).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-06",og_desc:"Brindar servicios de implementación de Oficinas y Casetas",oes:[
+  {oe:"OE-06.1",oe_desc:"Garantizar la ejecución del servicio",kpi:"% inmuebles en plazo ≥95%",acts:[
+   {cod:"A01",act:"Definir alcance estándar del servicio",ent:"Checklist de Alcance",resp:"GIS/Inmob.",weeks:WEEKS.filter(w=>[2,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Elaborar cronograma (plantilla)",ent:"Cronograma",resp:"GIS",weeks:WEEKS.filter(w=>[2,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Elaborar presupuesto",ent:"Presupuesto",resp:"GIS",weeks:WEEKS.filter(w=>[2,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Validación y Ejecución del servicio",ent:"Acta de entrega",resp:"GIS/Inmob.",weeks:WEEKS.filter(w=>[2,3,4,5].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-07",og_desc:"Elaborar procesos",oes:[
+  {oe:"OE-07.1",oe_desc:"Revisión de procesos actuales y optimización",kpi:"% procesos optimizados ≥80%",acts:[
+   {cod:"A01",act:"Identificación y levantamiento de procesos",ent:"Mapa de procesos",resp:"GIS/Admin.",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Rev 0 Procesos Postventa",ent:"Flujos de procesos",resp:"Dir./GIS/Admin.",weeks:WEEKS.filter(w=>[4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Propuesta de optimización",ent:"Procesos optimizados",resp:"GIS/Procesos",weeks:WEEKS.filter(w=>[8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación y seguimiento",ent:"Procesos implementados",resp:"GIS/Procesos",weeks:WEEKS.filter(w=>w.month>=9).map(w=>w.wk)},
+  ]},
+  {oe:"OE-07.2",oe_desc:"Manual de funciones del Organigrama",kpi:"100% puestos formalizados",acts:[
+   {cod:"A01",act:"Revisión del organigrama actual",ent:"Organigrama validado",resp:"Directorio",weeks:WEEKS.filter(w=>[8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de funciones por puesto",ent:"Funciones y responsabilidades",resp:"GIS/Procesos",weeks:WEEKS.filter(w=>[9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Elaboración del manual de funciones",ent:"Manual de funciones",resp:"GIS/Procesos",weeks:WEEKS.filter(w=>[9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Validación, aprobación y difusión",ent:"Manual aprobado",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[10,11].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-07.3",oe_desc:"Elaborar Informes Mensuales y Trimestrales",kpi:"100% informes en plazo",acts:[
+   {cod:"A01",act:"Definición del alcance de los informes",ent:"Alcance y estructura",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de indicadores y fuentes",ent:"Matriz de indicadores",resp:"Directorio/GIS",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Diseño de formatos de informe",ent:"Formato estándar",resp:"GIS",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Elaboración y presentación de informes",ent:"Informes mensuales",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=2).map(w=>w.wk)},
+   {cod:"A05",act:"Seguimiento y mejora de informes",ent:"Reportes",resp:"GIS",weeks:WEEKS.filter(w=>w.month>=3).map(w=>w.wk)},
+  ]},
+ ]},
+];
+
+const METRO_SEED = [
+ {og:"OG-01",og_desc:"Asegurar la innovación constante en diseño",oes:[
+  {oe:"OE-01.1",oe_desc:"Propuestas arquitectónicas diferenciadas con cumplimiento normativo",kpi:"≥2 criterios innovadores/año",acts:[
+   {cod:"A01",act:"Monitoreo de tendencias e innovación / Capacitaciones",ent:"Registro tendencias",resp:"CP",weeks:WEEKS.filter(w=>[3,4,7,8,11,12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Actualización periódica de normativa / Capacitaciones",ent:"Matriz normativa",resp:"CP",weeks:WEEKS.filter(w=>[3,4,7,8,11,12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Checklist normativo y de innovación por proyecto",ent:"Checklist",resp:"CP",weeks:WEEKS.filter(w=>[3,4,7,8,11,12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Estandarización de criterios innovadores exitosos",ent:"Lineamientos actualizados",resp:"CP",weeks:WEEKS.filter(w=>[3,4,7,8,11,12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Presentación Mensual",ent:"Acta de reuniones",resp:"CP",weeks:WEEKS.filter(w=>[4,8,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.2",oe_desc:"Implementar Proyecto Verde: Edge, Bono verde o LEED",kpi:"≥50% proyectos con certificación verde",acts:[
+   {cod:"A01",act:"Evaluación de viabilidad",ent:"Informe viabilidad",resp:"Directorio/CP",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de estrategias sostenibles",ent:"Matriz estrategias",resp:"CP",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Incorporación en el diseño",ent:"Expediente con criterios verdes",resp:"CP",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Validación técnica",ent:"Check cumplimiento",resp:"CP",weeks:WEEKS.filter(w=>[4,5,6].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.3",oe_desc:"Uso de IA / VR en diseños",kpi:"≥50% proyectos con IA/VR",acts:[
+   {cod:"A01",act:"Identificación de herramientas IA/VR",ent:"Informe comparativo",resp:"CP",weeks:WEEKS.filter(w=>[3,4,10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Capacitación del equipo",ent:"Registro capacitaciones",resp:"CP",weeks:WEEKS.filter(w=>[3,4,10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Aplicación piloto - Experiencia comercial",ent:"Proyecto piloto IA/VR",resp:"CP",weeks:WEEKS.filter(w=>[3,4,10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Evaluación y estandarización",ent:"Lineamientos de uso",resp:"CP",weeks:WEEKS.filter(w=>[4,5,11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-02",og_desc:"Optimización en tiempo y costos",oes:[
+  {oe:"OE-02.1",oe_desc:"Establecer indicadores / Reducir tiempos ≥10%",kpi:"Reducción ≥10% tiempos expedientes",acts:[
+   {cod:"A01",act:"Línea base de tiempos por actividad",ent:"Matriz tiempos actuales",resp:"Directorio/CP",weeks:WEEKS.filter(w=>[1,2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de flujos BIM",ent:"Flujo BIM estandarizado",resp:"CP/Coord. BIM",weeks:WEEKS.filter(w=>[2,3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementación piloto Armoni 1 / Catalina Living",ent:"Expediente bajo flujo BIM",resp:"CP/Coord. BIM",weeks:WEEKS.filter(w=>w.month>=3&&w.month<=9).map(w=>w.wk)},
+   {cod:"A04",act:"Medición de mejora de tiempos",ent:"Informe comparativo pre/post",resp:"CP/Coord. BIM",weeks:WEEKS.filter(w=>w.month>=4).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.2",oe_desc:"Reducir errores mediante revisiones colaborativas",kpi:"Reducción observaciones ≥20%",acts:[
+   {cod:"A01",act:"Definición del proceso de revisión colaborativa",ent:"Procedimiento revisiones",resp:"CP/Procesos",weeks:WEEKS.filter(w=>[1,2,3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Reuniones semanales interdisciplinarias",ent:"Actas de reuniones",resp:"CP",weeks:WEEKS.filter(w=>[1,2,3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Registro y seguimiento de observaciones",ent:"Matriz observaciones",resp:"CP",weeks:WEEKS.filter(w=>w.month>=3).map(w=>w.wk)},
+   {cod:"A04",act:"Cierre de observaciones antes de entrega a obra",ent:"Expediente compatibilizado",resp:"CP",weeks:WEEKS.filter(w=>[5,6,9,10].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.3",oe_desc:"Implementar BIM en 100% proyectos 2026",kpi:"100% proyectos bajo BIM",acts:[
+   {cod:"A01",act:"Definición Plan de Implementación BIM",ent:"Plan implementación",resp:"CP/Coord. BIM",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Capacitación del equipo",ent:"Acta capacitación",resp:"CP",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Proyecto piloto (Armoni 1)",ent:"Modelo BIM integral",resp:"CP/Coord. BIM",weeks:WEEKS.filter(w=>[4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Escalamiento BIM al total de proyectos",ent:"Proyectos BIM en ejecución",resp:"CP/Coord. BIM",weeks:WEEKS.filter(w=>w.month>=5).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.4",oe_desc:"Uso de gadgets para Supervisión y Compatibilización",kpi:"≥80% revisiones digitales",acts:[
+   {cod:"A01",act:"Definición de requerimientos tecnológicos",ent:"Especificación equipos",resp:"CP",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Adquisición y configuración de equipos",ent:"Equipos configurados",resp:"CP",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Capacitación en uso en campo",ent:"Registros capacitación",resp:"CP",weeks:WEEKS.filter(w=>[4,5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación en supervisiones",ent:"Reportes supervisión digital",resp:"CP",weeks:WEEKS.filter(w=>w.month>=5).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.5",oe_desc:"Implementar Metrados en el Área",kpi:"≥80% proyectos con metrados",acts:[
+   {cod:"A01",act:"Definición del alcance de metrados",ent:"Alcance metrados",resp:"CP",weeks:WEEKS.filter(w=>[1,2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Integración de metrados desde modelos BIM",ent:"Metrados desde BIM",resp:"CP",weeks:WEEKS.filter(w=>w.month>=1&&w.month<=10).map(w=>w.wk)},
+   {cod:"A03",act:"Entrega estandarizada de metrados",ent:"Metrados validados",resp:"CP",weeks:WEEKS.filter(w=>w.month>=1&&w.month<=10).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-03",og_desc:"Mejorar la Calidad en los proyectos",oes:[
+  {oe:"OE-03.1",oe_desc:"Asegurar Estándares de Calidad",kpi:"≥95% sin obs. críticas",acts:[
+   {cod:"A01",act:"Definición de estándares / Manual tolerancias",ent:"Checklist calidad",resp:"CP/Calidad",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Implementación revisiones técnicas internas",ent:"Actas reunión",resp:"CP/Calidad",weeks:WEEKS.filter(w=>[3,4,8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Validación cruzada Diseño-Calidad-Obra",ent:"Actas validación",resp:"CP/Cal./Const.",weeks:WEEKS.filter(w=>[5,6,10,11].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-03.2",oe_desc:"Manual de Diseño y Especificaciones Técnicas",kpi:"100% manual aprobado",acts:[
+   {cod:"A01",act:"Recopilación de criterios existentes",ent:"Índice de Manual",resp:"CP",weeks:WEEKS.filter(w=>[8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Redacción del Manual de diseño",ent:"Borrador Manual",resp:"CP",weeks:WEEKS.filter(w=>[8,9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Revisión y validación interáreas",ent:"Actas reunión",resp:"CP/Cal./Inmob.",weeks:WEEKS.filter(w=>[10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Aprobación y difusión (1era versión)",ent:"Manual validado",resp:"CP/Cal./Inmob.",weeks:WEEKS.filter(w=>[11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-03.3",oe_desc:"Medir satisfacción del cliente (Inmobiliarias)",kpi:"Satisfacción ≥85%",acts:[
+   {cod:"A01",act:"Definición de criterios y encuesta",ent:"Modelo de encuesta",resp:"Directorio/CP",weeks:WEEKS.filter(w=>[8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Aplicación de encuestas a inmobiliarias",ent:"Resultados encuesta",resp:"Directorio/CP",weeks:WEEKS.filter(w=>[8,9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Análisis de resultados y brechas",ent:"Informe resultados",resp:"Directorio/CP",weeks:WEEKS.filter(w=>[10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación de mejoras en diseño",ent:"Plan de acción",resp:"CP",weeks:WEEKS.filter(w=>[11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-04",og_desc:"Elaborar procesos",oes:[
+  {oe:"OE-04.1",oe_desc:"Revisión de procesos y optimizar con BIM",kpi:"≥80% procesos con BIM",acts:[
+   {cod:"A01",act:"Levantamiento de procesos actuales",ent:"Mapa procesos",resp:"CP",weeks:WEEKS.filter(w=>[4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Identificación de oportunidades de mejora con BIM",ent:"Procesos BIM",resp:"CP",weeks:WEEKS.filter(w=>[4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Rediseño y estandarización de procesos",ent:"Procesos operativos",resp:"CP",weeks:WEEKS.filter(w=>[9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementación y seguimiento",ent:"Reportes",resp:"CP",weeks:WEEKS.filter(w=>w.month>=10).map(w=>w.wk)},
+  ]},
+  {oe:"OE-04.2",oe_desc:"Manual de funciones del Organigrama",kpi:"100% puestos formalizados",acts:[
+   {cod:"A01",act:"Revisión del organigrama de Metropolitano",ent:"Organigrama",resp:"Directorio/CP",weeks:WEEKS.filter(w=>[7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Definición de funciones y responsabilidades",ent:"Fichas de puesto",resp:"Procesos/CP",weeks:WEEKS.filter(w=>[8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Elaboración del Manual de funciones",ent:"Borrador Manual",resp:"Procesos/CP",weeks:WEEKS.filter(w=>[9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Aprobación y difusión del manual",ent:"Manual validado",resp:"Procesos/CP",weeks:WEEKS.filter(w=>w.month>=10).map(w=>w.wk)},
+  ]},
+ ]},
+];
+
+// === INMOBILIARIAS ===
+const INMOB_SEED = [
+ {og:"OG-01",og_desc:"Garantizar la liquidez del grupo (Holding y Sucursales)",oes:[
+  {oe:"OE-01.1",oe_desc:"Implementar el Plan de trabajo financiero por Hitos de proyectos",kpi:"Resultado positivo en Flujo de Caja",acts:[
+   {cod:"A01",act:"Asegurar la proyección de resultados del FC sostenible en el tiempo",ent:"Flujo de Caja",resp:"CFO",weeks:WEEKS.filter(w=>[1,2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Establecer un plan de trabajo por áreas (& gestión de riesgos).",ent:"Plan de trabajo",resp:"CFO",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Difundir a los involucrados",ent:"Acta de entrega",resp:"CFO",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Seguimiento Ingresos",ent:"Reporte de seguimiento semanal",resp:"Finanzas",weeks:WEEKS.filter(w=>[3,4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Seguimiento Egresos",ent:"Reporte de seguimiento semanal",resp:"Finanzas",weeks:WEEKS.filter(w=>[3,4,5,6].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.2",oe_desc:"Asegurar la precisión del flujo de caja con horizonte 3 meses: Precisión >= 90%",kpi:"Precisión de FC >= 90%",acts:[
+   {cod:"A01",act:"Medir el porcentaje de precisión actual",ent:"Mov. Real vs  Mov. Proyectado x 100",resp:"Finanzas",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Buscar e implementar mecanismos para incrementar la precisión en las proyecciones de ingresos y egresos.",ent:"Mejoras varias en el flujo.",resp:"Finanzas",weeks:WEEKS.filter(w=>[3,4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Migrar el reporte de Flujo de Caja a un Software versatil (no Excel)",ent:"Software",resp:"Finanzas",weeks:WEEKS.filter(w=>[6,7,8,9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Medir el porcentaje de precisión optimizado",ent:"Mov. Real vs  Mov. Proyectado x 100",resp:"Finanzas",weeks:WEEKS.filter(w=>[6,7,8,9,10,11].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-02",og_desc:"Estrategia de crecimiento 2027 - 2028 (backlog)",oes:[
+  {oe:"OE-02.1",oe_desc:"Asegurar la liquidez del grupo + nuevos proyectos",kpi:"Liquidez positiva",acts:[
+   {cod:"A01",act:"Realizar análisis de flujos de caja típicos de proyectos de acuerdo con su tamaño.",ent:"Informe de Análisis Financiero",resp:"CFO",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Establecer Nro. De proyectos \"pequeños\" vs cada proyecto grande.",ent:"Informe de Análisis Financiero & recomendación",resp:"CFO",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Difusión a los involucrados (brokers, gerencias, etc).",ent:"Actas de reuniones",resp:"Directorio",weeks:WEEKS.filter(w=>[8].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.2",oe_desc:"Mínimo un (01) proyecto fuera de Santa Catalina",kpi:"01 proyecto importante fuera de Sta Catalina",acts:[
+   {cod:"A01",act:"Enfocar búsqueda de terrenos/casas fuera de Santa Catalina",ent:"Coordinación con brokers",resp:"Directorio",weeks:WEEKS.filter(w=>[4,5,6,7,8,9].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-02.3",oe_desc:"Establecer alianzas estratégicas con brokers busca-terrenos",kpi:"5 brokers busca-terrenos asociados",acts:[
+   {cod:"A01",act:"Diseñar sistema de trabajo",ent:"Procedimiento de trabajo.",resp:"Directorio",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Difundir a nivel interno",ent:"Acta de capacitación al personal",resp:"Directorio",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Difundir a nivel externo (Jorge & En Marcha)",ent:"Actas de reunión",resp:"Directorio",weeks:WEEKS.filter(w=>[5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Buscar + brokers",ent:"+ 3 brokers asociados",resp:"Directorio",weeks:WEEKS.filter(w=>[5,6,7,8].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-03",og_desc:"Mejorar la rentabilidad de los proyectos actuales",oes:[
+  {oe:"OE-03.1",oe_desc:"Medir la rentabilidad de proyectos entregados",kpi:"Informes de Costos",acts:[
+   {cod:"A01",act:"Recabar la información histórica de costos e ingresos de los proyectos SCAT IX, Zentric y Midori.",ent:"Base de datos",resp:"Contabilidad",weeks:WEEKS.filter(w=>[10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Clasificar información histórica de costos e ingresos.",ent:"Base de datos",resp:"Finanzas",weeks:WEEKS.filter(w=>[11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Realizar análisis de ratios de costos, ingresos y plazos (INDICADORES)",ent:"Informe financiero",resp:"CFO",weeks:WEEKS.filter(w=>[11].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-03.2",oe_desc:"Sincerar presupuesto meta de proyectos actuales",kpi:"Presupuesto Meta por Proyecto",acts:[
+   {cod:"A01",act:"Actualizar y difundir la estructura de costos de los proyectos.",ent:"Base de datos",resp:"Contabilidad",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Recabar información histórica de costos e ingresos de los proyectos en ejecución.",ent:"Base de datos",resp:"Finanzas",weeks:WEEKS.filter(w=>[10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Recabar información histórica de costos e ingresos de la Oficina Principal.",ent:"Base de datos",resp:"Finanzas",weeks:WEEKS.filter(w=>[10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Clasificar información histórica de costos e ingresos de acuerdo a la nueva estructura.",ent:"Base de datos",resp:"Finanzas",weeks:WEEKS.filter(w=>[10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Realizar análisis de ratios de costos, ingresos y plazos (INDICADORES).",ent:"Informe financiero",resp:"CFO",weeks:WEEKS.filter(w=>[12].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-03.3",oe_desc:"Implementar estrategias de reducción de costos y gastos",kpi:"Costo real menor al Presupuesto Meta",acts:[
+   {cod:"A01",act:"Analizar partidas de mayor incidencia en costo y plazo.",ent:"Análisis de Informe",resp:"Contabilidad",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Buscar e implementar estrategias de reducción de costos.",ent:"Resultado del Proyecto",resp:"Finanzas & Directorio",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Buscar e implementar estrategias de reducción de gastos.",ent:"Resultado del Proyecto",resp:"Finanzas & Directorio",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementar política de Pagos y Caja Chica.",ent:"Política difundida.",resp:"CFO",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Buscar e implementar estrategias de ampliación de plazos en egresos.",ent:"Resultado del Proyecto",resp:"Finanzas & Directorio",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-03.4",oe_desc:"Implementar estrategias de incremento de ingresos",kpi:"Ingreso real mayor al Presupuesto de Ingresos",acts:[
+   {cod:"A01",act:"Analizar flujo de ingresos (cuentas corrientes y de garantía) y precios por m2.",ent:"Base de datos",resp:"Contabilidad",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Buscar e implementar estrategias de incremento de ingresos.",ent:"Base de datos",resp:"Finanzas",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Buscar e implementar estrategias de reducción de plazos en ingresos.",ent:"Menor gasto financiero",resp:"Finanzas",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-03.5",oe_desc:"Sincerar ratios de costos y plazos óptimos para proyectos futuros",kpi:"Base de datos de Indicadores financieros clave con sustento técnico.",acts:[
+   {cod:"A01",act:"Elaborar Excel \"presupuestador\" de proyectos con ratios sincerados.",ent:"Base de datos",resp:"Contabilidad",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Actualizar la política de Cobranzas.",ent:"Política difundida.",resp:"CFO",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Actualizar la política de Pagos y Caja Chica.",ent:"Política difundida.",resp:"CFO",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-04",og_desc:"Obtener una (1) fuente de financiamiento NO tradicional",oes:[
+  {oe:"OE-04.1",oe_desc:"Ordenar la Contabilidad",kpi:"Estados Financieros Consolidados y Auditados (Holding + SPV)",acts:[
+   {cod:"A01",act:"Homologar estructura de costos de las SPV.",ent:"Registro de costos con nueva estructura en Contabilidad",resp:"CFO",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Implementar la estructura de costos de la Holding.",ent:"Registro de costos con nueva estructura en Contabilidad",resp:"Contabilidad",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementar la contabilidad de costos y Estados Financieros Consolidados.",ent:"Primer reporte de Estados Financieros Consolidado",resp:"Contabilidad",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementar procedimientos de gestión administrativo-contable.",ent:"Procedimiento difundido",resp:"Procesos",weeks:WEEKS.filter(w=>[5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Contratar el servicio de auditoría externa de los procesos contables.",ent:"Informe de Auditoría Externa",resp:"CFO",weeks:WEEKS.filter(w=>[10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A06",act:"Contratar el servicio de auditoría externa de los Estados Financieros.",ent:"Informe de Auditoría Externa",resp:"CFO",weeks:WEEKS.filter(w=>[10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A07",act:"Levantar observaciones de la auditoría externa.",ent:"Informe de Levantamiento de Observaciones de Auditoría",resp:"Contabilidad",weeks:WEEKS.filter(w=>[11].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-04.2",oe_desc:"Ordenar las Ventas",kpi:"Sistema de Trabajo",acts:[
+   {cod:"A01",act:"Implementar política de ventas y cobranzas.",ent:"Política Corporativa",resp:"CFO",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Implementar procedimiento de cobranzas de ventas al contado y desembolsos de créditos hipotecarios.",ent:"Procedimiento difundido",resp:"Finanzas",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Consultoría externa comercial.",ent:"Informe de consultoría.",resp:"Directorio",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Evaluar la implementación del área de Administración de Ventas.",ent:"Informe de recomendación",resp:"Finanzas",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-04.3",oe_desc:"Ordenar la Gestión de Proyectos",kpi:"Sistema de Trabajo Auditable (ISO 9001, 31000, 22301)",acts:[
+   {cod:"A01",act:"Actualizar los procedimientos de gestión de Proyectos/Operaciones.",ent:"Procedimiento difundido",resp:"Procesos",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Difundir e implementar los procedimientos.",ent:"Informe de consultoría",resp:"CFO",weeks:WEEKS.filter(w=>[4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Actualizar procedimientos + Gestión de Riesgos + Costumer Experience + Compliance",ent:"Informe de levantamiento de observaciones",resp:"CFO",weeks:WEEKS.filter(w=>[7,8,9,10].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-04.4",oe_desc:"Ordenar el área Legal",kpi:"Propuesta Formal de Financiamiento",acts:[
+   {cod:"A01",act:"Establecer estándar de minutas de compra-venta:  cláusulas Negociables y No negociables",ent:"Modelo estándar de minuta de compra-venta",resp:"CFO",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Establecer flujo de aprobaciones de contratos.",ent:"Procedimiento y Política de Gestión Contractual",resp:"Procesos",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementar procesos de compliance.",ent:"Procedimiento difundido.",resp:"Procesos",weeks:WEEKS.filter(w=>[6,7,8].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-04.5",oe_desc:"Ordenar las Finanzas",kpi:"Propuesta Formal de Financiamiento",acts:[
+   {cod:"A01",act:"Obtener checklist de requerimiento de 3 fondos de inversión reconocidos en el mercado.",ent:"Checklist consolidado de Fondos de Inversión",resp:"CFO",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Revisar y evaluar checklist de requerimiento.",ent:"Informe de evaluación de checklist",resp:"Finanzas",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Consultoría con asesor financiero.",ent:"Informe de consultoría.",resp:"CFO",weeks:WEEKS.filter(w=>[8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Consultoría con asesor legal.",ent:"Informe de consultoría.",resp:"CFO",weeks:WEEKS.filter(w=>[8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Consultoría con asesor contable.",ent:"Informe de consultoría.",resp:"CFO",weeks:WEEKS.filter(w=>[8,9].includes(w.month)).map(w=>w.wk)},
+   {cod:"A06",act:"Implementar procedimientos y políticas de gestión de proyectos con financiamiento externo.",ent:"Procedimientos y lineamientos",resp:"CFO",weeks:WEEKS.filter(w=>[10,11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A07",act:"Recopilar información requerida y pasar evaluación",ent:"Expediente de financiamiento",resp:"Finanzas",weeks:WEEKS.filter(w=>[11].includes(w.month)).map(w=>w.wk)},
+   {cod:"A08",act:"Seguimiento a la propuesta formal.",ent:"Propuesta Formal de Financiamiento o Carta de Intención",resp:"Finanzas",weeks:WEEKS.filter(w=>[12].includes(w.month)).map(w=>w.wk)},
+   {cod:"A09",act:"Obtener checklist de requerimiento de 5 bancos (actuales + BBVA + IBK).",ent:"Checklist consolidado de Bancos",resp:"CFO",weeks:WEEKS.filter(w=>[5].includes(w.month)).map(w=>w.wk)},
+   {cod:"A10",act:"Revisar y evaluar checklist de requerimiento.",ent:"Informe de evaluación de checklist",resp:"Finanzas",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A11",act:"Actualizar procedimientos de gestión de financiamiento con bancos",ent:"Procedimientos y lineamientos",resp:"Finanzas",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A12",act:"Recopilar información requerida y pasar evaluación con BANCO NUEVO.",ent:"Expediente de financiamiento",resp:"Finanzas",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A13",act:"Seguimiento a la propuesta formal.",ent:"Propuesta Formal de Financiamiento o Carta de Intención",resp:"Finanzas",weeks:WEEKS.filter(w=>[8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A14",act:"Realizar estructuración de proyecto con socio inversionista por casuísticas principales: Aporte de terreno; Aporte de fondos.",ent:"Análisis de rentabilidad por escenarios.",resp:"CFO",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A15",act:"Consultoría con asesor financiero.",ent:"Informe de consultoría.",resp:"CFO",weeks:WEEKS.filter(w=>[7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A16",act:"Consultoría con asesor legal.",ent:"Informe de consultoría.",resp:"CFO",weeks:WEEKS.filter(w=>[7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A17",act:"Consultoría con asesor contable.",ent:"Informe de consultoría.",resp:"CFO",weeks:WEEKS.filter(w=>[7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A18",act:"Implementar procedimientos y políticas de gestión de proyectos con financiamiento externo.",ent:"Procedimientos y lineamientos",resp:"CFO",weeks:WEEKS.filter(w=>[9,10].includes(w.month)).map(w=>w.wk)},
+   {cod:"A19",act:"Explorar opciones de financiamiento con FFF",ent:"Búsqueda activa",resp:"CFO",weeks:WEEKS.filter(w=>[10,11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+];
+
+// Total activities for Inmobiliarias: 72
+
+// === CONSTRUCTORAS ===
+const CONST_SEED = [
+ {og:"OG-01",og_desc:"Garantizar la cadena de suministros",oes:[
+  {oe:"OE-01.1",oe_desc:"Establecer el sistema de gestión de la cadena de suministros",kpi:"Sistema de trabajo implementado.",acts:[
+   {cod:"A01",act:"Implementar procesos de gestión de adquisiciones (materiales y servicios)",ent:"Procedimientos difundidos",resp:"Procesos",weeks:WEEKS.filter(w=>[1,2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Contratar personal con know how para asimilar",ent:"2 contrataciones (mínimo)",resp:"Directorio",weeks:WEEKS.filter(w=>[2,3,7,8].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Desarrollar el plan de carrera para el personal de confianza asignado",ent:"Plan de trabajo",resp:"CFO",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementar la política de adquisiciones.",ent:"Política difundida",resp:"CFO",weeks:WEEKS.filter(w=>[2,3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Implementar modelos estándar de contratos.",ent:"Modelo corporativo implementado",resp:"CFO",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-02",og_desc:"Lograr rentabilidad en los proyectos",oes:[
+  {oe:"OE-02.1",oe_desc:"Establecer un precio por m2 de construcción con un margen de utilidad de 10%",kpi:"Rentabilidad 10% en EEFF",acts:[
+   {cod:"A01",act:"Emitir presupuesto de costos y gastos 2026",ent:"Presupuesto aprobado",resp:"CFO",weeks:WEEKS.filter(w=>[2].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Emitir EEFF proyectados 2026.",ent:"EEFF 2026 proyectados.",resp:"CFO",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Contratar un estudio de precios de transferencia para sincerar la utilidad de cada proyecto.",ent:"Informe de Estudio de precios",resp:"CFO",weeks:WEEKS.filter(w=>[6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Realizar seguimiento al presupuesto 2026",ent:"EEFF mensuales con análisis de desviaciones",resp:"Finanzas",weeks:WEEKS.filter(w=>[4,5,6,7,8,9,10,11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-03",og_desc:"Incrementar la rentabilidad de los proyectos",oes:[
+  {oe:"OE-03.1",oe_desc:"Reducir el costo por m2 de construcción en un 3%",kpi:"Rentabilidad + 3%",acts:[
+   {cod:"A01",act:"Analizar el costo por m2 según el presupuesto meta de los proyectos.",ent:"Informe de análisis de costos",resp:"CFO",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Revisar la estrategia de adquisiciones actual.",ent:"Análisis interno.",resp:"Directorio",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Revisar la estrategia de operaciones actual",ent:"Análisis interno.",resp:"Directorio",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Revisar la proyección de uso de equipos en obras.",ent:"Análisis interno.",resp:"Directorio",weeks:WEEKS.filter(w=>[6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Re-plantear las estrategias de adquisiciones y operaciones.",ent:"Informe de análisis técnico",resp:"Directorio",weeks:WEEKS.filter(w=>[7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A06",act:"Implementar las mejoras identificadas",ent:"Plan de trabajo.",resp:"GG Constructoras",weeks:WEEKS.filter(w=>[8,9,10,11,12].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+ {og:"OG-04",og_desc:"Culminar con la implementación de los procedimientos de gestión",oes:[
+  {oe:"OE-04.1",oe_desc:"Reducir el costo por m2 de construcción en un 3%",kpi:"Procedimientos implementados",acts:[
+   {cod:"A01",act:"Actualizar el plan de trabajo de procesos",ent:"Plan de trabajo actualizado.",resp:"Procesos",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Establecer reuniones periódicas para reporte de avances.",ent:"Cronograma de reuniones",resp:"Directorio",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementar procesos de gestión de cadena de suministros (compras - almacén - costos).",ent:"Procedimientos aprobados.",resp:"Procesos / GG Constructoras",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Implementar procesos de gestión de tesorería.",ent:"Procedimientos aprobados.",resp:"Procesos / GG Constructoras",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A05",act:"Implementar procesos de gestión de operaciones (producción).",ent:"Procedimientos aprobados.",resp:"Procesos / GG Constructoras",weeks:WEEKS.filter(w=>[4,5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A06",act:"Implementar MOF de cada puesto clave (GG Constructoras, Operaciones, Logística, Almacén, Residente de Obra, Administración).",ent:"MOF aprobado.",resp:"Procesos / Directorio",weeks:WEEKS.filter(w=>[8].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-04.2",oe_desc:"Implementar el Sistema de Gestión de Calidad de Inmobiliaria en Constructora",kpi:"SGC implementado.",acts:[
+   {cod:"A01",act:"Establecer el plan de trabajo de procesos.",ent:"Plan de trabajo.",resp:"Calidad",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Establecer reuniones periódicas para reporte de avances.",ent:"Cronograma de reuniones.",resp:"Directorio",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementar manual de gestión.",ent:"Manual de procesos constructivos aprobado.",resp:"Procesos / G. Construcción",weeks:WEEKS.filter(w=>[4,5,6,7,8,9].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+];
+
+// Total activities for Constructoras: 24
+
+// === CEQ RENTAL ===
+const RENTAL_SEED = [
+ {og:"OG-01",og_desc:"Implementar el sistema de gestión de activos",oes:[
+  {oe:"OE-01.1",oe_desc:"Sistema de trabajo",kpi:"Sistema de gestión implementado",acts:[
+   {cod:"A01",act:"Implementar procesos de evaluación de compra/alquiler de activos",ent:"Procedimiento de trabajo.",resp:"Procesos",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Implementar procesos de gestión de activos.",ent:"Procedimiento de trabajo.",resp:"Procesos",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Implementar control de activos.",ent:"Inventario de activos.",resp:"GG Shark Tank",weeks:WEEKS.filter(w=>[4].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Consolidar activos de empresas del grupo en CEQ Rental",ent:"Compra-venta de activos.",resp:"GG Shark Tank",weeks:WEEKS.filter(w=>[3,4].includes(w.month)).map(w=>w.wk)},
+  ]},
+  {oe:"OE-01.2",oe_desc:"Invertir en activos",kpi:"Inversión en nuevos activos 500K",acts:[
+   {cod:"A01",act:"Comprar andamios colgantes eléctricos",ent:"Activo comprado y alquilado",resp:"GG Shark Tank",weeks:WEEKS.filter(w=>[3].includes(w.month)).map(w=>w.wk)},
+   {cod:"A02",act:"Explorar oportunidades de inversión (demanda interna)",ent:"Informes de evaluación",resp:"CFO",weeks:WEEKS.filter(w=>[4,5,6].includes(w.month)).map(w=>w.wk)},
+   {cod:"A03",act:"Explorar oportunidades de inversión (demanda externa)",ent:"Informes de evaluación",resp:"CFO",weeks:WEEKS.filter(w=>[5,6,7].includes(w.month)).map(w=>w.wk)},
+   {cod:"A04",act:"Ejecutar compras de activos x oportunidades identificadas",ent:"Activo comprado y alquilado",resp:"GG Shark Tank",weeks:WEEKS.filter(w=>[5,6,7,8,9,10].includes(w.month)).map(w=>w.wk)},
+  ]},
+ ]},
+];
+
+// Total activities for CEQ Rental: 8
+
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
+const SK='lps2026v5';
+let S;
+load(); // Inicialización inmediata desde localStorage
+
+function defaultState(){
+  // Convert seed to state: obiectives structure + pm/ppc per activity-month
+  function buildArea(seed){
+    return JSON.parse(JSON.stringify(seed));
+  }
+  return {
+    la:{gis:buildArea(GIS_SEED),metro:buildArea(METRO_SEED),inmob:buildArea(INMOB_SEED),const:buildArea(CONST_SEED),rental:buildArea(RENTAL_SEED)},
+    pm:{gis:{},metro:{},inmob:{},const:{},rental:{}},
+    ppc:{gis:{},metro:{},inmob:{},const:{},rental:{}},
+    ar:{gis:[],metro:[],inmob:[],const:[],rental:[]},
+    projects:[],
+  };
+}
+
+function load(){try{const r=localStorage.getItem(SK);S=r?JSON.parse(r):defaultState();}catch(e){S=defaultState();}}
+async function loadFromFirestore(){
+  try{
+    const snap=await db.collection('planeamientos').doc(SK).get();
+    if(snap.exists){S=snap.data();}else{S=defaultState();save();}
+  }catch(e){
+    console.warn('Firestore no disponible, usando localStorage:',e.message);
+    load();
+  }
+}
+function save(){
+  localStorage.setItem(SK,JSON.stringify(S));
+  if(currentUser){
+    db.collection('planeamientos').doc(SK).set(S)
+      .catch(e=>console.warn('Firestore save error:',e.message));
+  }
+  showToast('Guardado');
+}
+function resetAll(){if(confirm('¿Seguro que deseas borrar TODOS los datos? No se puede deshacer.')){S=defaultState();save();location.reload();}}
+
+// ══════════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════════
+let toastT;
+function showToast(m,isErr=false){const t=document.getElementById('toast');t.textContent=m;t.style.background=isErr?'#c62828':'';t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>{t.classList.remove('show');t.style.background='';},isErr?3500:1800);}
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const mn=document.querySelector('.main');
+  sb.classList.toggle('collapsed');
+  mn.classList.toggle('collapsed');
+  localStorage.setItem('sidebarCollapsed',sb.classList.contains('collapsed')?'1':'0');
+}
+(function(){if(localStorage.getItem('sidebarCollapsed')==='1'){document.getElementById('sidebar').classList.add('collapsed');document.querySelector('.main').classList.add('collapsed');}})();
+
+let curPage='dashboard';
+function showPage(id){
+  try{
+    if(!S) S=defaultState();
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const pg=document.getElementById('page-'+id);
+    if(!pg){ showToast('Página no encontrada: '+id, true); return; }
+    pg.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>{
+      n.classList.remove('active');
+      if(n.getAttribute('onclick')===`showPage('${id}')`) n.classList.add('active');
+    });
+    curPage=id;
+    // Re-render dynamic pages
+    if(id.startsWith('la-'))renderLA(id.replace('la-',''));
+    if(id.startsWith('pm-'))renderPM(id.replace('pm-',''));
+    if(id.startsWith('ppc-'))renderPPC(id.replace('ppc-',''));
+    if(id.startsWith('ar-'))renderAR(id.replace('ar-',''));
+    if(id==='dashboard')updateDash();
+    if(id==='dashboard-global')renderDashGlobal();
+    if(id==='admin')renderAdminPanel();
+    window.scrollTo(0,0);
+  }catch(e){
+    console.error('showPage error:',e);
+    showToast('Error al cargar página: '+e.message, true);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PROYECTOS ADICIONALES — Crear / Gestionar / Renderizar
+// ══════════════════════════════════════════════════════════════════
+const PROJECT_COLORS = [
+  '#4472C4','#C00000','#548235','#ED7D31','#7B2D8E',
+  '#00897B','#0288D1','#E91E63','#795548','#37474F'
+];
+
+function getProjects(){ return S.projects||[]; }
+
+function rebuildSidebar(){
+  const container = document.getElementById('nav-extra-projects');
+  if(!container) return;
+  const projects = getProjects();
+  container.innerHTML = projects.map(p=>`
+    <div class="area-label" style="color:${p.color}88;display:flex;align-items:center;justify-content:space-between">
+      <span>${escHtml(p.name)}</span>
+      <button onclick="deleteProject('${p.key}')" title="Eliminar proyecto" style="background:none;border:none;color:rgba(255,100,100,0.5);cursor:pointer;font-size:13px;padding:0 2px;" class="btn-logout"><i class="ri-delete-bin-6-line"></i></button>
+    </div>
+    <div class="nav-item" onclick="showPage('la-${p.key}')"><span class="icon"><i class="ri-calendar-schedule-line"></i></span><span>Lookahead</span></div>
+    <div class="nav-item" onclick="showPage('pm-${p.key}')"><span class="icon"><i class="ri-task-line"></i></span><span>Plan Mensual</span></div>
+    <div class="nav-item" onclick="showPage('ppc-${p.key}')"><span class="icon"><i class="ri-line-chart-line"></i></span><span>PPC</span></div>
+    <div class="nav-item" onclick="showPage('ar-${p.key}')"><span class="icon"><i class="ri-alarm-warning-line"></i></span><span>Restricciones</span></div>
+  `).join('');
+}
+
+function rebuildProjectPages(){
+  const container = document.getElementById('extra-project-pages');
+  if(!container) return;
+  const projects = getProjects();
+  // Add missing page divs
+  projects.forEach(p=>{
+    ['la','pm','ppc','ar'].forEach(mod=>{
+      const pid = 'page-'+mod+'-'+p.key;
+      if(!document.getElementById(pid)){
+        const d = document.createElement('div');
+        d.className = 'page';
+        d.id = pid;
+        container.appendChild(d);
+      }
+    });
+  });
+  // Ensure state keys exist
+  ['la','pm','ppc','ar'].forEach(mod=>{
+    projects.forEach(p=>{
+      if(!S[mod]) S[mod]={};
+      if(!S[mod][p.key]) S[mod][p.key] = mod==='la'?[] : mod==='ar'?{} : {};
+    });
+  });
+}
+
+function rebuildDashboardProjects(){
+  const existing = document.getElementById('dash-extra-projects');
+  if(existing) existing.remove();
+  const projects = getProjects();
+  if(!projects.length) return;
+  const charts = document.querySelector('#page-dashboard .charts-grid');
+  if(!charts) return;
+  const container = document.createElement('div');
+  container.id = 'dash-extra-projects';
+  projects.forEach(p=>{
+    const hex = p.color;
+    const h = document.createElement('div');
+    h.style.cssText = 'margin-top:20px';
+    h.innerHTML = `<h3 style="margin:16px 0 10px;color:${hex}"><i class="ri-folder-line"></i> ${escHtml(p.name)}</h3>
+      <div class="dash-grid">
+        <div class="dash-card" style="background:linear-gradient(135deg,${hex}18,${hex}08);border-left:4px solid ${hex}" onclick="showPage('la-${p.key}')"><div class="dash-icon" style="color:${hex}"><i class="ri-calendar-schedule-line"></i></div><h3>Lookahead Anual</h3><p>Cronograma semanal editable</p></div>
+        <div class="dash-card" style="background:linear-gradient(135deg,${hex}18,${hex}08);border-left:4px solid ${hex}" onclick="showPage('pm-${p.key}')"><div class="dash-icon" style="color:${hex}"><i class="ri-task-line"></i></div><h3>Plan Mensual</h3><p>Estado y avance por actividad</p></div>
+        <div class="dash-card" style="background:linear-gradient(135deg,${hex}18,${hex}08);border-left:4px solid ${hex}" onclick="showPage('ppc-${p.key}')"><div class="dash-icon" style="color:${hex}"><i class="ri-line-chart-line"></i></div><h3>PPC</h3><p>Porcentaje de Plan Cumplido</p></div>
+        <div class="dash-card" style="background:linear-gradient(135deg,${hex}18,${hex}08);border-left:4px solid ${hex}" onclick="showPage('ar-${p.key}')"><div class="dash-icon" style="color:${hex}"><i class="ri-alarm-warning-line"></i></div><h3>Restricciones</h3><p>Registro de restricciones</p></div>
+      </div>`;
+    container.appendChild(h);
+    // Add PPC canvas for dashboard
+    const c = document.createElement('div');
+    c.className = 'chart-card';
+    c.innerHTML = `<h4>PPC Mensual — ${escHtml(p.name)}</h4><canvas id="dash-chart-ppc-${p.key}"></canvas>`;
+    charts.appendChild(c);
+  });
+  charts.parentElement.insertBefore(container, charts);
+}
+
+function initProjects(){
+  rebuildProjectPages();
+  rebuildSidebar();
+  rebuildDashboardProjects();
+}
+
+function openCreateProjectModal(){
+  if(document.getElementById('proj-modal')) return;
+  const existing = getProjects();
+  const overlay = document.createElement('div');
+  overlay.className = 'proj-modal-overlay';
+  overlay.id = 'proj-modal';
+  const colorBtns = PROJECT_COLORS.map((c,i)=>
+    `<div class="proj-color-btn${i===0?' selected':''}" style="background:${c}" data-color="${c}" onclick="selectProjColor(this)"></div>`
+  ).join('');
+  const projList = existing.length ? `
+    <div style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">Proyectos existentes</div>
+      ${existing.map(p=>`
+        <div class="proj-list-item">
+          <div class="badge-color" style="background:${p.color}"></div>
+          <div class="proj-name">${escHtml(p.name)}</div>
+          <button class="btn btn-danger btn-xs" onclick="deleteProject('${p.key}');closeProjectModal()"><i class="ri-delete-bin-6-line"></i> Eliminar</button>
+        </div>`).join('')}
+    </div>` : '';
+  overlay.innerHTML = `<div class="proj-modal">
+    <h3><i class="ri-folder-add-line"></i> Gestión de Proyectos</h3>
+    ${projList}
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:12px">Crear nuevo proyecto</div>
+    <div class="fg"><label>Nombre del proyecto</label><input id="pj-name" placeholder="Ej: Proyecto Sur, Torre B..." maxlength="40"></div>
+    <div class="fg"><label>Color</label><div class="proj-color-row" id="pj-color-row">${colorBtns}</div></div>
+    <div id="pj-error" style="color:#c00;font-size:12px;min-height:16px"></div>
+    <div class="proj-modal-actions">
+      <button class="btn btn-outline" onclick="closeProjectModal()">Cerrar</button>
+      <button class="btn btn-primary" onclick="submitCreateProject()"><i class="ri-add-circle-line"></i> Crear</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('pj-name').focus();
+}
+
+function closeProjectModal(){
+  const m = document.getElementById('proj-modal');
+  if(m) m.remove();
+}
+
+function selectProjColor(el){
+  document.querySelectorAll('#pj-color-row .proj-color-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function submitCreateProject(){
+  const name = document.getElementById('pj-name').value.trim();
+  const errEl = document.getElementById('pj-error');
+  if(!name){ errEl.textContent='Ingresa un nombre para el proyecto.'; return; }
+  // Generate unique key from name
+  const rawKey = name.toLowerCase().replace(/[^a-z0-9]/g,'').substring(0,12)||('proj'+(Date.now()%10000));
+  const existing = getProjects();
+  const builtinKeys = ['gis','metro','inmob','const','rental'];
+  if(builtinKeys.includes(rawKey) || existing.find(p=>p.key===rawKey)){
+    errEl.textContent='Nombre muy similar a un proyecto existente. Usa otro nombre.'; return;
+  }
+  const colorBtn = document.querySelector('#pj-color-row .proj-color-btn.selected');
+  const color = colorBtn ? colorBtn.dataset.color : PROJECT_COLORS[0];
+  const newProject = { key: rawKey, name, color };
+  if(!S.projects) S.projects=[];
+  S.projects.push(newProject);
+  save();
+  initProjects();
+  closeProjectModal();
+  showToast('Proyecto "'+name+'" creado');
+  setTimeout(()=>showPage('la-'+rawKey), 300);
+}
+
+function deleteProject(key){
+  if(!confirm('¿Eliminar el proyecto y todos sus datos? No se puede deshacer.')) return;
+  if(S.projects) S.projects = S.projects.filter(p=>p.key!==key);
+  ['la','pm','ppc','ar'].forEach(mod=>{ if(S[mod]) delete S[mod][key]; });
+  // Remove page divs
+  ['la','pm','ppc','ar'].forEach(mod=>{
+    const el=document.getElementById('page-'+mod+'-'+key);
+    if(el) el.remove();
+  });
+  save();
+  initProjects();
+  showPage('dashboard');
+}
+
+// Flatten activities for a key
+function flatActs(key){
+  const r=[];
+  (S.la[key]||[]).forEach((og,oi)=>{
+    (og.oes||[]).forEach((oe,ei)=>{
+      (oe.acts||[]).forEach((a,ai)=>{
+        r.push({...a,og:og.og,og_desc:og.og_desc,oe:oe.oe,oe_desc:oe.oe_desc,kpi:oe.kpi,_id:`${oi}-${ei}-${ai}`,_oi:oi,_ei:ei,_ai:ai});
+      });
+    });
+  });
+  return r;
+}
+
+// Get months from weeks array
+function weeksToMonths(weeks){
+  const ms=new Set();
+  weeks.forEach(wk=>{const w=WEEKS.find(x=>x.wk===wk);if(w)ms.add(w.month);});
+  return [...ms].sort((a,b)=>a-b);
+}
+
+// Modal helpers
+function openModal(title,bodyHTML,onOk){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=bodyHTML;
+  document.getElementById('modal-add').classList.add('show');
+  document.getElementById('modal-ok').onclick=()=>{onOk();closeModal();};
+}
+function closeModal(){document.getElementById('modal-add').classList.remove('show');}
+
+// ══════════════════════════════════════════════════════════════════
+// LOOKAHEAD
+// ══════════════════════════════════════════════════════════════════
+function renderLA(key){
+  if(!S) S=defaultState();
+  const data=S.la[key]||[];
+  const areaNames={gis:'GIS (POSTVENTA)',metro:'METROPOLITANO (DISEÑO)',inmob:'INMOBILIARIA',const:'CONSTRUCTORA',rental:'CEQ RENTAL'};
+  const areaTag=areaNames[key]||key.toUpperCase();
+  const ac=key;
+  const el=document.getElementById('page-la-'+key);
+
+  let h=`<div class="page-header">
+    <h2><i class="ri-calendar-schedule-line" style="color:var(--light-blue)"></i> Lookahead Anual 2026 <span class="area-tag ${ac}">${areaTag}</span></h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-pdf btn-sm" onclick="exportPagePDF('page-la-${key}','landscape','a3')"><i class="ri-file-pdf-2-line"></i> PDF</button>
+      <button class="btn btn-success btn-sm" onclick="laAddOG('${key}')"><i class="ri-add-circle-line"></i> Agregar OG</button>
+      <button class="btn btn-outline btn-sm" onclick="downloadLATemplate('${key}')"><i class="ri-file-excel-line"></i> Plantilla</button>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer" title="Importar desde Excel"><i class="ri-upload-line"></i> Importar<input type="file" accept=".xlsx,.xls" style="display:none" onchange="importLAFromExcel('${key}',this)"></label>
+      <button class="btn btn-outline btn-sm" onclick="showHelp()"><i class="ri-question-line"></i> Ayuda</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('dashboard')"><i class="ri-arrow-left-s-line"></i> Dashboard</button>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--dark-gray);margin-bottom:12px">
+    <b>Click</b> en una celda semanal para activar/desactivar ■ &nbsp;|&nbsp;
+    <b>Doble-click</b> en texto para editar &nbsp;|&nbsp;
+    Usa los botones <i class="ri-add-circle-line"></i> para agregar OG, OE o Actividades
+  </p>
+  <div class="card"><div class="table-wrapper"><table>
+    <thead><tr>
+      <th style="width:28px">#</th><th style="width:55px">Código</th>
+      <th style="min-width:230px;text-align:left">Actividad</th>
+      <th style="min-width:170px;text-align:left">Entregable</th>
+      <th style="width:90px">Responsable</th>
+      <th style="width:24px"></th>`;
+  for(let m=1;m<=12;m++){const wks=WEEKS.filter(w=>w.month===m);h+=`<th class="month-header" colspan="${wks.length}">${MONTHS[m]}</th>`;}
+  h+=`</tr><tr><th class="sub-header" colspan="6"></th>`;
+  WEEKS.forEach(w=>{h+=`<th class="sub-header" style="min-width:22px;font-size:9px">S${w.wk}</th>`;});
+  h+=`</tr></thead><tbody>`;
+
+  let num=0;
+  data.forEach((og,oi)=>{
+    h+=`<tr class="og-row"><td colspan="6">
+      <span class="editable" contenteditable="true" onblur="laEditOG('${key}',${oi},this.textContent)">${og.og} | ${og.og_desc}</span>
+      <button class="btn btn-xs" style="background:rgba(255,255,255,0.2);color:white;margin-left:10px" onclick="laAddOE('${key}',${oi})"><i class="ri-add-circle-line"></i> OE</button>
+      <button class="row-del" style="color:#faa;opacity:1" onclick="laDelOG('${key}',${oi})" title="Eliminar OG">✕</button>
+    </td>`;
+    WEEKS.forEach(()=>h+=`<td style="background:var(--dark-blue)"></td>`);
+    h+=`</tr>`;
+
+    (og.oes||[]).forEach((oe,ei)=>{
+      h+=`<tr class="oe-row"><td colspan="3">
+        <span class="editable" contenteditable="true" onblur="laEditOE('${key}',${oi},${ei},'desc',this.textContent)">${oe.oe} | ${oe.oe_desc}</span>
+        <button class="btn btn-xs" style="background:rgba(255,255,255,0.2);color:white;margin-left:8px" onclick="laAddAct('${key}',${oi},${ei})"><i class="ri-add-circle-line"></i> Act.</button>
+        <button class="row-del" style="color:#faa;opacity:1" onclick="laDelOE('${key}',${oi},${ei})" title="Eliminar OE">✕</button>
+      </td>
+      <td colspan="2" style="font-style:italic;font-size:11px;color:rgba(255,255,255,0.8)">
+        KPI: <span class="editable" contenteditable="true" onblur="laEditOE('${key}',${oi},${ei},'kpi',this.textContent)">${oe.kpi||'-'}</span>
+      </td><td></td>`;
+      WEEKS.forEach(()=>h+=`<td style="background:var(--med-blue)"></td>`);
+      h+=`</tr>`;
+
+      (oe.acts||[]).forEach((a,ai)=>{
+        num++;
+        const wkSet=new Set(a.weeks||[]);
+        h+=`<tr>
+          <td class="center">${num}</td>
+          <td class="center"><span class="editable" contenteditable="true" onblur="laEditAct('${key}',${oi},${ei},${ai},'cod',this.textContent)">${a.cod}</span></td>
+          <td class="act-name"><span class="editable" contenteditable="true" onblur="laEditAct('${key}',${oi},${ei},${ai},'act',this.textContent)">${a.act}</span></td>
+          <td class="act-name" style="font-size:11px"><span class="editable" contenteditable="true" onblur="laEditAct('${key}',${oi},${ei},${ai},'ent',this.textContent)">${a.ent}</span></td>
+          <td class="center" style="font-size:11px"><span class="editable" contenteditable="true" onblur="laEditAct('${key}',${oi},${ei},${ai},'resp',this.textContent)">${a.resp}</span></td>
+          <td class="center" style="white-space:nowrap"><button class="row-move" onclick="laMoveAct('${key}',${oi},${ei},${ai},-1)" title="Subir">▲</button><button class="row-move" onclick="laMoveAct('${key}',${oi},${ei},${ai},1)" title="Bajar">▼</button><button class="row-del" onclick="laDelAct('${key}',${oi},${ei},${ai})" title="Eliminar">✕</button></td>`;
+        WEEKS.forEach(w=>{
+          const on=wkSet.has(w.wk);
+          h+=`<td class="la-cell ${on?'la-on':'la-off'}" onclick="laToggle('${key}',${oi},${ei},${ai},${w.wk},this)">${on?'■':''}</td>`;
+        });
+        h+=`</tr>`;
+      });
+    });
+  });
+  h+=`</tbody></table></div></div>`;
+  el.innerHTML=h;
+}
+
+// Lookahead edit functions
+function laToggle(key,oi,ei,ai,wk,td){
+  const a=S.la[key][oi].oes[ei].acts[ai];
+  if(!a.weeks)a.weeks=[];
+  const idx=a.weeks.indexOf(wk);
+  if(idx>=0){a.weeks.splice(idx,1);td.className='la-cell la-off';td.textContent='';}
+  else{a.weeks.push(wk);a.weeks.sort((a,b)=>a-b);td.className='la-cell la-on';td.textContent='■';}
+  save();
+}
+function laEditOG(key,oi,txt){
+  const p=txt.split('|');S.la[key][oi].og=(p[0]||'').trim();S.la[key][oi].og_desc=(p.slice(1).join('|')||'').trim();save();
+}
+function laEditOE(key,oi,ei,field,txt){
+  if(field==='desc'){const p=txt.split('|');S.la[key][oi].oes[ei].oe=(p[0]||'').trim();S.la[key][oi].oes[ei].oe_desc=(p.slice(1).join('|')||'').trim();}
+  else S.la[key][oi].oes[ei][field]=txt;
+  save();
+}
+function laEditAct(key,oi,ei,ai,field,txt){S.la[key][oi].oes[ei].acts[ai][field]=txt;save();}
+
+// Add OG
+function laAddOG(key){
+  openModal('Agregar Objetivo General',`
+    <div class="fg"><label>Código OG</label><input id="m-og-cod" placeholder="OG-08" /></div>
+    <div class="fg"><label>Descripción</label><input id="m-og-desc" placeholder="Descripción del objetivo general" /></div>
+  `,()=>{
+    S.la[key].push({og:document.getElementById('m-og-cod').value||'OG-XX',og_desc:document.getElementById('m-og-desc').value||'Nuevo objetivo',oes:[]});
+    save();renderLA(key);
+  });
+}
+// Add OE
+function laAddOE(key,oi){
+  openModal('Agregar Objetivo Específico',`
+    <div class="fg"><label>Código OE</label><input id="m-oe-cod" placeholder="OE-XX.X" /></div>
+    <div class="fg"><label>Descripción</label><input id="m-oe-desc" placeholder="Descripción del OE" /></div>
+    <div class="fg"><label>KPI</label><input id="m-oe-kpi" placeholder="Indicador del OE" /></div>
+  `,()=>{
+    S.la[key][oi].oes.push({oe:document.getElementById('m-oe-cod').value||'OE-XX',oe_desc:document.getElementById('m-oe-desc').value||'Nuevo OE',kpi:document.getElementById('m-oe-kpi').value||'',acts:[]});
+    save();renderLA(key);
+  });
+}
+// Add Activity
+function laAddAct(key,oi,ei){
+  openModal('Agregar Actividad',`
+    <div class="fg"><label>Código</label><input id="m-a-cod" placeholder="A01" /></div>
+    <div class="fg"><label>Actividad</label><input id="m-a-act" placeholder="Nombre de la actividad" /></div>
+    <div class="fg"><label>Entregable</label><input id="m-a-ent" placeholder="Entregable esperado" /></div>
+    <div class="fg"><label>Responsable</label><input id="m-a-resp" placeholder="Responsable" /></div>
+  `,()=>{
+    S.la[key][oi].oes[ei].acts.push({cod:document.getElementById('m-a-cod').value||'AXX',act:document.getElementById('m-a-act').value||'Nueva actividad',ent:document.getElementById('m-a-ent').value||'',resp:document.getElementById('m-a-resp').value||'',weeks:[]});
+    save();renderLA(key);
+  });
+}
+// Delete
+function laDelOG(key,oi){if(confirm('¿Eliminar este Objetivo General y todo su contenido?')){S.la[key].splice(oi,1);save();renderLA(key);}}
+function laDelOE(key,oi,ei){if(confirm('¿Eliminar este OE y sus actividades?')){S.la[key][oi].oes.splice(ei,1);save();renderLA(key);}}
+function laDelAct(key,oi,ei,ai){if(confirm('¿Eliminar esta actividad?')){S.la[key][oi].oes[ei].acts.splice(ai,1);save();renderLA(key);}}
+function laMoveAct(key,oi,ei,ai,dir){const acts=S.la[key][oi].oes[ei].acts;const ni=ai+dir;if(ni<0||ni>=acts.length)return;[acts[ai],acts[ni]]=[acts[ni],acts[ai]];save();renderLA(key);}
+
+// ══════════════════════════════════════════════════════════════════
+// PLAN MENSUAL — Plan checkbox drives everything
+// ══════════════════════════════════════════════════════════════════
+function getPMKey(oi,ei,ai){return `${oi}-${ei}-${ai}`;}
+
+function renderPM(key){
+  if(!S) S=defaultState();
+  const acts=flatActs(key);
+  const areaNames={gis:'GIS (POSTVENTA)',metro:'METROPOLITANO (DISEÑO)',inmob:'INMOBILIARIA',const:'CONSTRUCTORA',rental:'CEQ RENTAL'};
+  const ac=key;
+  const areaTag=areaNames[key]||key.toUpperCase();
+  const el=document.getElementById('page-pm-'+key);
+
+  let h=`<div class="page-header">
+    <h2><i class="ri-task-line" style="color:var(--light-blue)"></i> Plan Mensual 2026 <span class="area-tag ${ac}">${areaTag}</span></h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-pdf btn-sm" onclick="exportPagePDF('page-pm-${key}','landscape','a3')"><i class="ri-file-pdf-2-line"></i> PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('dashboard')"><i class="ri-arrow-left-s-line"></i> Dashboard</button>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--dark-gray);margin-bottom:10px">
+    <b><i class="ri-checkbox-circle-line" style="color:var(--green)"></i> Plan</b> = marcar las actividades planificadas para el mes (se derivan del Lookahead, pero puedes modificarlos) &nbsp;|&nbsp;
+    <b>Estado</b> y <b>% Avance</b> se habilitan al marcar Plan
+  </p>`;
+
+  // Summary
+  h+=`<div class="summary-panel" id="pm-sum-${key}"></div>`;
+
+  h+=`<div class="card"><div class="table-wrapper"><table>
+    <thead><tr>
+      <th rowspan="2" style="width:28px">#</th>
+      <th rowspan="2" style="width:55px">OE</th>
+      <th rowspan="2" style="width:50px">Cód</th>
+      <th rowspan="2" style="min-width:210px;text-align:left">Actividad</th>
+      <th rowspan="2" style="width:85px">Resp.</th>`;
+  for(let m=1;m<=12;m++)h+=`<th class="month-header" colspan="3">${MONTHS[m]}</th>`;
+  h+=`</tr><tr>`;
+  for(let m=1;m<=12;m++)h+=`<th class="sub-header">Plan</th><th class="sub-header">Estado</th><th class="sub-header">%</th>`;
+  h+=`</tr></thead><tbody>`;
+
+  acts.forEach((a,idx)=>{
+    const pk=getPMKey(a._oi,a._ei,a._ai);
+    const actMonths=weeksToMonths(a.weeks||[]);
+    h+=`<tr>
+      <td class="center">${idx+1}</td>
+      <td class="center" style="font-size:10px">${a.oe}</td>
+      <td class="center">${a.cod}</td>
+      <td class="act-name">${a.act}</td>
+      <td class="center" style="font-size:10px">${a.resp}</td>`;
+
+    for(let m=1;m<=12;m++){
+      // Default plan = activity has this month in lookahead
+      const autoPlanned=actMonths.includes(m);
+      if(!S.pm[key][pk])S.pm[key][pk]={};
+      if(S.pm[key][pk][m]===undefined){
+        S.pm[key][pk][m]=autoPlanned?{plan:true,status:'No Iniciado',avance:0}:{plan:false,status:'No Iniciado',avance:0};
+      }
+      const s=S.pm[key][pk][m];
+      const chk=s.plan;
+
+      // Plan checkbox
+      h+=`<td class="center ${chk?'plan-on':''}"><input type="checkbox" ${chk?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--green)" onchange="pmTogglePlan('${key}','${pk}',${m},this.checked)" /></td>`;
+
+      if(chk){
+        h+=`<td><select class="cell-select" onchange="pmSet('${key}','${pk}',${m},'status',this.value)">
+          <option ${s.status==='No Iniciado'?'selected':''}>No Iniciado</option>
+          <option ${s.status==='En Proceso'?'selected':''}>En Proceso</option>
+          <option ${s.status==='Completado'?'selected':''}>Completado</option>
+          <option ${s.status==='Retrasado'?'selected':''}>Retrasado</option>
+        </select></td>`;
+        h+=`<td><input type="number" class="cell-input" min="0" max="100" value="${s.avance||0}" onchange="pmSet('${key}','${pk}',${m},'avance',parseInt(this.value)||0)" />%</td>`;
+      } else {
+        h+=`<td style="background:#f7f7f7;text-align:center;color:#ccc;font-size:10px">—</td>`;
+        h+=`<td style="background:#f7f7f7;text-align:center;color:#ccc;font-size:10px">—</td>`;
+      }
+    }
+    h+=`</tr>`;
+  });
+
+  h+=`</tbody></table></div></div>`;
+
+  // Charts
+  h+=`<div class="charts-grid" style="margin-top:18px">
+    <div class="chart-card"><h4>% Avance Promedio por Mes</h4><canvas id="pm-ch1-${key}"></canvas></div>
+    <div class="chart-card"><h4>Actividades por Estado</h4><canvas id="pm-ch2-${key}"></canvas></div>
+  </div>`;
+
+  el.innerHTML=h;
+  pmUpdateSummary(key);
+  pmCharts(key);
+}
+
+function pmTogglePlan(key,pk,m,val){
+  if(!S.pm[key][pk])S.pm[key][pk]={};
+  if(!S.pm[key][pk][m])S.pm[key][pk][m]={plan:false,status:'No Iniciado',avance:0};
+  S.pm[key][pk][m].plan=val;
+  save();renderPM(key);
+}
+function pmSet(key,pk,m,field,val){
+  S.pm[key][pk][m][field]=val;save();pmUpdateSummary(key);pmCharts(key);
+}
+
+function pmUpdateSummary(key){
+  const acts=flatActs(key);
+  let total=0,comp=0,ep=0,ret=0,ni=0,avSum=0,avCnt=0;
+  acts.forEach(a=>{
+    const pk=getPMKey(a._oi,a._ei,a._ai);
+    for(let m=1;m<=12;m++){
+      const s=S.pm[key]?.[pk]?.[m];
+      if(s&&s.plan){
+        total++;
+        if(s.status==='Completado')comp++;
+        else if(s.status==='En Proceso')ep++;
+        else if(s.status==='Retrasado')ret++;
+        else ni++;
+        avSum+=(s.avance||0);avCnt++;
+      }
+    }
+  });
+  const avg=avCnt>0?Math.round(avSum/avCnt):0;
+  const el=document.getElementById(`pm-sum-${key}`);
+  if(el)el.innerHTML=`
+    <div class="summary-item" style="border-top-color:var(--dark-blue)"><div class="val">${total}</div><div class="lbl">Planificadas</div></div>
+    <div class="summary-item" style="border-top-color:var(--green)"><div class="val" style="color:var(--green)">${comp}</div><div class="lbl">Completadas</div></div>
+    <div class="summary-item" style="border-top-color:var(--yellow)"><div class="val" style="color:#9C6500">${ep}</div><div class="lbl">En Proceso</div></div>
+    <div class="summary-item" style="border-top-color:var(--red)"><div class="val" style="color:var(--red)">${ret}</div><div class="lbl">Retrasadas</div></div>
+    <div class="summary-item" style="border-top-color:var(--light-blue)"><div class="val" style="color:var(--light-blue)">${avg}%</div><div class="lbl">Avance Promedio</div></div>`;
+}
+
+let _pmC={};
+function pmCharts(key){
+  const acts=flatActs(key);
+  const avg=[],st={c:[],e:[],r:[],n:[]};
+  for(let m=1;m<=12;m++){
+    let s=0,c=0,cc=0,ee=0,rr=0,nn=0;
+    acts.forEach(a=>{
+      const pk=getPMKey(a._oi,a._ei,a._ai);
+      const v=S.pm[key]?.[pk]?.[m];
+      if(v&&v.plan){c++;s+=(v.avance||0);
+        if(v.status==='Completado')cc++;else if(v.status==='En Proceso')ee++;else if(v.status==='Retrasado')rr++;else nn++;}
+    });
+    avg.push(c>0?Math.round(s/c):0);st.c.push(cc);st.e.push(ee);st.r.push(rr);st.n.push(nn);
+  }
+  if(_pmC['a'+key])_pmC['a'+key].destroy();if(_pmC['b'+key])_pmC['b'+key].destroy();
+  const c1=document.getElementById(`pm-ch1-${key}`);
+  if(c1)_pmC['a'+key]=new Chart(c1,{type:'bar',data:{labels:MONTHS.slice(1),datasets:[{label:'% Avance',data:avg,backgroundColor:'#4472C4',borderRadius:6}]},options:{responsive:true,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false}}}});
+  const c2=document.getElementById(`pm-ch2-${key}`);
+  if(c2)_pmC['b'+key]=new Chart(c2,{type:'bar',data:{labels:MONTHS.slice(1),datasets:[
+    {label:'Completado',data:st.c,backgroundColor:'#548235',borderRadius:4},
+    {label:'En Proceso',data:st.e,backgroundColor:'#FFD966',borderRadius:4},
+    {label:'Retrasado',data:st.r,backgroundColor:'#C00000',borderRadius:4},
+    {label:'No Iniciado',data:st.n,backgroundColor:'#D9D9D9',borderRadius:4},
+  ]},options:{responsive:true,scales:{x:{stacked:true},y:{stacked:true}},plugins:{legend:{position:'bottom'}}}});
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PPC — Derives planned from Plan Mensual
+// ══════════════════════════════════════════════════════════════════
+function renderPPC(key){
+  if(!S) S=defaultState();
+  const acts=flatActs(key);
+  const areaNames={gis:'GIS (POSTVENTA)',metro:'METROPOLITANO (DISEÑO)',inmob:'INMOBILIARIA',const:'CONSTRUCTORA',rental:'CEQ RENTAL'};
+  const ac=key;
+  const areaTag=areaNames[key]||key.toUpperCase();
+  const el=document.getElementById('page-ppc-'+key);
+
+  let h=`<div class="page-header">
+    <h2><i class="ri-line-chart-line" style="color:var(--light-blue)"></i> PPC — % de Plan Cumplido <span class="area-tag ${ac}">${areaTag}</span></h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-pdf btn-sm" onclick="exportPagePDF('page-ppc-${key}','landscape','a3')"><i class="ri-file-pdf-2-line"></i> PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('dashboard')"><i class="ri-arrow-left-s-line"></i> Dashboard</button>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--dark-gray);margin-bottom:10px">
+    Las actividades planificadas (✓) vienen del <b>Plan Mensual</b>. 
+    Marcar <b>Comprometido</b> <i class="ri-checkbox-circle-line" style="color:var(--green)"></i> si se compromete al mes. 
+    Marcar <b>Ejecutado</b> <i class="ri-checkbox-circle-line" style="color:var(--green)"></i> cuando se complete. PPC = Ejecutadas / Comprometidas × 100
+  </p>`;
+
+  h+=`<div class="summary-panel" id="ppc-sum-${key}"></div>`;
+
+  h+=`<div class="card"><div class="table-wrapper"><table>
+    <thead><tr>
+      <th rowspan="2" style="width:28px">#</th><th rowspan="2" style="width:55px">OE</th>
+      <th rowspan="2" style="width:50px">Cód</th>
+      <th rowspan="2" style="min-width:210px;text-align:left">Actividad</th>
+      <th rowspan="2" style="width:85px">Resp.</th>`;
+  for(let m=1;m<=12;m++)h+=`<th class="month-header" colspan="3">${MONTHS[m]}</th>`;
+  h+=`</tr><tr>`;
+  for(let m=1;m<=12;m++)h+=`<th class="sub-header">Plan</th><th class="sub-header" style="background:var(--orange)">Compr.</th><th class="sub-header" style="background:var(--green)">Ejec.</th>`;
+  h+=`</tr></thead><tbody>`;
+
+  acts.forEach((a,idx)=>{
+    const pk=getPMKey(a._oi,a._ei,a._ai);
+    h+=`<tr><td class="center">${idx+1}</td><td class="center" style="font-size:10px">${a.oe}</td>
+      <td class="center">${a.cod}</td><td class="act-name">${a.act}</td>
+      <td class="center" style="font-size:10px">${a.resp}</td>`;
+
+    for(let m=1;m<=12;m++){
+      const pmS=S.pm[key]?.[pk]?.[m];
+      const planned=pmS&&pmS.plan;
+
+      if(!S.ppc[key][pk])S.ppc[key][pk]={};
+      if(!S.ppc[key][pk][m])S.ppc[key][pk][m]={compr:false,ejec:false};
+      const p=S.ppc[key][pk][m];
+
+      if(planned){
+        h+=`<td class="plan-on">✓</td>
+          <td class="chk-wrapper"><input type="checkbox" ${p.compr?'checked':''} onchange="ppcSet('${key}','${pk}',${m},'compr',this.checked)" /></td>
+          <td class="chk-wrapper"><input type="checkbox" ${p.ejec?'checked':''} onchange="ppcSet('${key}','${pk}',${m},'ejec',this.checked)" /></td>`;
+      } else {
+        h+=`<td style="background:#f7f7f7;text-align:center;color:#ccc;font-size:10px">—</td>
+          <td style="background:#f7f7f7"></td><td style="background:#f7f7f7"></td>`;
+      }
+    }
+    h+=`</tr>`;
+  });
+
+  h+=`</tbody></table></div></div>`;
+  h+=`<div class="charts-grid" style="margin-top:18px">
+    <div class="chart-card"><h4>Comprometidas vs Ejecutadas</h4><canvas id="ppc-ch1-${key}"></canvas></div>
+    <div class="chart-card"><h4>Tendencia PPC %</h4><canvas id="ppc-ch2-${key}"></canvas></div>
+  </div>`;
+
+  el.innerHTML=h;
+  ppcSummary(key);ppcChartsDraw(key);
+}
+
+function ppcSet(key,pk,m,f,v){
+  if(!S.ppc[key][pk])S.ppc[key][pk]={};
+  if(!S.ppc[key][pk][m])S.ppc[key][pk][m]={compr:false,ejec:false};
+  S.ppc[key][pk][m][f]=v;
+  save();ppcSummary(key);ppcChartsDraw(key);
+}
+
+function calcPPCData(key){
+  const acts=flatActs(key);
+  const monthly=[];let tc=0,te=0;
+  for(let m=1;m<=12;m++){
+    let c=0,e=0;
+    acts.forEach(a=>{
+      const pk=getPMKey(a._oi,a._ei,a._ai);
+      const pmS=S.pm[key]?.[pk]?.[m];
+      if(pmS&&pmS.plan){
+        const p=S.ppc[key]?.[pk]?.[m];
+        if(p?.compr){c++;tc++;}if(p?.ejec){e++;te++;}
+      }
+    });
+    monthly.push({m,compr:c,ejec:e,ppc:c>0?Math.round(e/c*100):0});
+  }
+  return {monthly,tc,te,global:tc>0?Math.round(te/tc*100):0};
+}
+
+function ppcSummary(key){
+  const {monthly,tc,te,global}=calcPPCData(key);
+  const el=document.getElementById(`ppc-sum-${key}`);if(!el)return;
+  const cls=global>=80?'ppc-good':'ppc-bad';
+  el.innerHTML=`
+    <div class="summary-item" style="border-top-color:var(--dark-blue)"><div class="val ppc-value ${cls}">${global}%</div><div class="lbl">PPC Global</div></div>
+    <div class="summary-item" style="border-top-color:var(--orange)"><div class="val" style="color:var(--orange)">${tc}</div><div class="lbl">Total Comprometidas</div></div>
+    <div class="summary-item" style="border-top-color:var(--green)"><div class="val" style="color:var(--green)">${te}</div><div class="lbl">Total Ejecutadas</div></div>
+    <div class="summary-item" style="border-top-color:${global>=80?'var(--green)':'var(--red)'}"><div class="val ${cls}">Meta: 80%</div><div class="lbl">${global>=80?'<i class="ri-checkbox-circle-line" style="color:var(--green)"></i> Cumple':'<i class="ri-error-warning-line" style="color:var(--red)"></i> Debajo de meta'}</div></div>`;
+}
+
+let _pC={};
+function ppcChartsDraw(key){
+  const {monthly}=calcPPCData(key);
+  if(_pC['a'+key])_pC['a'+key].destroy();if(_pC['b'+key])_pC['b'+key].destroy();
+  const c1=document.getElementById(`ppc-ch1-${key}`);
+  if(c1)_pC['a'+key]=new Chart(c1,{type:'bar',data:{labels:MONTHS.slice(1),datasets:[
+    {label:'Comprometidas',data:monthly.map(m=>m.compr),backgroundColor:'#ED7D31',borderRadius:4},
+    {label:'Ejecutadas',data:monthly.map(m=>m.ejec),backgroundColor:'#548235',borderRadius:4},
+  ]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+  const c2=document.getElementById(`ppc-ch2-${key}`);
+  if(c2)_pC['b'+key]=new Chart(c2,{type:'line',data:{labels:MONTHS.slice(1),datasets:[
+    {label:'PPC %',data:monthly.map(m=>m.ppc),borderColor:'#1B2A4A',backgroundColor:'rgba(68,114,196,0.1)',borderWidth:3,fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:'#4472C4'},
+    {label:'Meta 80%',data:Array(12).fill(80),borderColor:'#C00000',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false},
+  ]},options:{responsive:true,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{position:'bottom'}}}});
+}
+
+// ══════════════════════════════════════════════════════════════════
+// AR (RESTRICCIONES)
+// ══════════════════════════════════════════════════════════════════
+function renderAR(key){
+  if(!S) S=defaultState();
+  const acts=flatActs(key);
+  const areaNames={gis:'GIS (POSTVENTA)',metro:'METROPOLITANO (DISEÑO)',inmob:'INMOBILIARIA',const:'CONSTRUCTORA',rental:'CEQ RENTAL'};
+  const ac=key;
+  const areaTag=areaNames[key]||key.toUpperCase();
+  const el=document.getElementById('page-ar-'+key);
+  if(!S.ar[key])S.ar[key]=[];
+  const oeList=[...new Set(acts.map(a=>a.oe))].sort();
+
+  let h=`<div class="page-header">
+    <h2><i class="ri-alarm-warning-line" style="color:var(--red)"></i> Análisis de Restricciones <span class="area-tag ${ac}">${areaTag}</span></h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-pdf btn-sm" onclick="exportPagePDF('page-ar-${key}','landscape','a3')"><i class="ri-file-pdf-2-line"></i> PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('dashboard')"><i class="ri-arrow-left-s-line"></i> Dashboard</button>
+    </div>
+  </div>`;
+  h+=`<div class="summary-panel" id="ar-sum-${key}"></div>`;
+
+  h+=`<div class="card" style="border-left:4px solid var(--red)">
+    <div class="card-header" style="background:var(--red);color:white"><i class="ri-add-circle-line"></i> Agregar Restricción</div>
+    <div class="card-body">
+      <div class="ar-form-grid">
+        <div class="fg"><label>OE</label><select id="ar-oe-${key}">${oeList.map(o=>`<option>${o}</option>`).join('')}</select></div>
+        <div class="fg"><label>Cód</label><input id="ar-cod-${key}" placeholder="A01" /></div>
+        <div class="fg"><label>Descripción</label><input id="ar-desc-${key}" placeholder="Describe la restricción..." /></div>
+        <div class="fg"><label>Tipo</label><select id="ar-tipo-${key}"><option>Información</option><option>Recurso</option><option>Equipos</option><option>Diseño</option><option>Materiales</option><option>Aprobación</option><option>Legal</option><option>Financiero</option><option>Otro</option></select></div>
+        <div class="fg"><label>Responsable</label><input id="ar-resp-${key}" placeholder="Nombre" /></div>
+        <div class="fg"><label>Fecha Req.</label><input type="date" id="ar-f-${key}" /></div>
+        <div class="fg"><label>Impacto</label><select id="ar-imp-${key}"><option>Bajo</option><option>Medio</option><option>Alto</option><option>Crítico</option></select></div>
+        <div class="fg"><label>&nbsp;</label><button class="btn btn-danger" onclick="arAdd('${key}')"><i class="ri-add-circle-line"></i> Agregar</button></div>
+      </div>
+    </div></div>`;
+
+  h+=`<div class="card"><div class="table-wrapper"><table>
+    <thead><tr><th>#</th><th>OE</th><th>Cód</th><th style="min-width:200px;text-align:left">Descripción</th><th>Tipo</th><th>Responsable</th><th>Fecha Req.</th><th>Estado</th><th>Impacto</th><th style="min-width:160px;text-align:left">Mitigación</th><th></th></tr></thead>
+    <tbody id="ar-body-${key}"></tbody>
+  </table></div></div>`;
+  h+=`<div class="charts-grid" style="margin-top:18px">
+    <div class="chart-card"><h4>Estado de Restricciones</h4><canvas id="ar-ch1-${key}"></canvas></div>
+    <div class="chart-card"><h4>Por Impacto</h4><canvas id="ar-ch2-${key}"></canvas></div>
+  </div>`;
+
+  el.innerHTML=h;
+  arRender(key);
+}
+
+function arAdd(key){
+  const r={oe:document.getElementById(`ar-oe-${key}`).value,cod:document.getElementById(`ar-cod-${key}`).value,
+    desc:document.getElementById(`ar-desc-${key}`).value,tipo:document.getElementById(`ar-tipo-${key}`).value,
+    resp:document.getElementById(`ar-resp-${key}`).value,fechaReq:document.getElementById(`ar-f-${key}`).value,
+    imp:document.getElementById(`ar-imp-${key}`).value,estado:'Pendiente',mitigacion:'',fechaIdent:new Date().toISOString().split('T')[0]};
+  if(!r.desc){showToast('Ingrese descripción');return;}
+  S.ar[key].push(r);save();arRender(key);
+  document.getElementById(`ar-desc-${key}`).value='';document.getElementById(`ar-cod-${key}`).value='';
+  showToast('Restricción agregada');
+}
+function arDel(key,i){if(confirm('¿Eliminar?')){S.ar[key].splice(i,1);save();arRender(key);}}
+function arUpd(key,i,f,v){S.ar[key][i][f]=v;save();arRender(key);}
+
+function arRender(key){
+  const body=document.getElementById(`ar-body-${key}`);if(!body)return;
+  const items=S.ar[key]||[];
+  if(!items.length){body.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:30px;color:#aaa">Sin restricciones. Use el formulario de arriba.</td></tr>`;
+  }else{
+    body.innerHTML=items.map((r,i)=>`<tr>
+      <td class="center">${i+1}</td><td class="center">${r.oe}</td><td class="center">${r.cod}</td>
+      <td class="act-name">${r.desc}</td><td class="center">${r.tipo}</td><td class="center">${r.resp}</td>
+      <td class="center">${r.fechaReq||'-'}</td>
+      <td><select class="cell-select" onchange="arUpd('${key}',${i},'estado',this.value)">
+        ${['Pendiente','En Gestión','Levantada','Vencida'].map(s=>`<option ${r.estado===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td class="center"><span style="padding:3px 8px;border-radius:12px;font-size:10px;font-weight:600;
+        background:${{Bajo:'#C6EFCE',Medio:'#FFEB9C',Alto:'#FFCCBC',Crítico:'#C00000'}[r.imp]||'#eee'};
+        color:${{Bajo:'#006100',Medio:'#9C6500',Alto:'#BF360C',Crítico:'white'}[r.imp]||'#333'}">${r.imp}</span></td>
+      <td><input class="cell-input" style="width:100%" value="${r.mitigacion||''}" onchange="arUpd('${key}',${i},'mitigacion',this.value)" placeholder="Acción..." /></td>
+      <td class="center"><button class="btn btn-danger btn-xs" onclick="arDel('${key}',${i})"><i class="ri-delete-bin-6-line"></i></button></td>
+    </tr>`).join('');
+  }
+  arSummary(key);arChartsDraw(key);
+}
+
+function arSummary(key){
+  const items=S.ar[key]||[];
+  const c={p:0,g:0,l:0,v:0};
+  items.forEach(r=>{if(r.estado==='Pendiente')c.p++;else if(r.estado==='En Gestión')c.g++;else if(r.estado==='Levantada')c.l++;else c.v++;});
+  const el=document.getElementById(`ar-sum-${key}`);if(!el)return;
+  el.innerHTML=`
+    <div class="summary-item" style="border-top-color:var(--dark-blue)"><div class="val">${items.length}</div><div class="lbl">Total</div></div>
+    <div class="summary-item" style="border-top-color:var(--yellow)"><div class="val" style="color:#9C6500">${c.p}</div><div class="lbl">Pendientes</div></div>
+    <div class="summary-item" style="border-top-color:var(--orange)"><div class="val" style="color:var(--orange)">${c.g}</div><div class="lbl">En Gestión</div></div>
+    <div class="summary-item" style="border-top-color:var(--green)"><div class="val" style="color:var(--green)">${c.l}</div><div class="lbl">Levantadas</div></div>
+    <div class="summary-item" style="border-top-color:var(--red)"><div class="val" style="color:var(--red)">${c.v}</div><div class="lbl">Vencidas</div></div>`;
+}
+
+let _aC={};
+function arChartsDraw(key){
+  const items=S.ar[key]||[];
+  const sc=[0,0,0,0],ic=[0,0,0,0];
+  items.forEach(r=>{
+    if(r.estado==='Pendiente')sc[0]++;else if(r.estado==='En Gestión')sc[1]++;else if(r.estado==='Levantada')sc[2]++;else sc[3]++;
+    if(r.imp==='Bajo')ic[0]++;else if(r.imp==='Medio')ic[1]++;else if(r.imp==='Alto')ic[2]++;else ic[3]++;
+  });
+  if(_aC['a'+key])_aC['a'+key].destroy();if(_aC['b'+key])_aC['b'+key].destroy();
+  const c1=document.getElementById(`ar-ch1-${key}`);
+  if(c1)_aC['a'+key]=new Chart(c1,{type:'doughnut',data:{labels:['Pendiente','En Gestión','Levantada','Vencida'],datasets:[{data:sc,backgroundColor:['#FFD966','#ED7D31','#548235','#C00000'],borderWidth:2}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+  const c2=document.getElementById(`ar-ch2-${key}`);
+  if(c2)_aC['b'+key]=new Chart(c2,{type:'doughnut',data:{labels:['Bajo','Medio','Alto','Crítico'],datasets:[{data:ic,backgroundColor:['#548235','#FFD966','#ED7D31','#C00000'],borderWidth:2}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════
+let _dC={};
+function updateDash(){
+  const BUILTIN=[
+    {key:'inmob',label:'PPC Inmobiliaria',color:'var(--orange)'},
+    {key:'const',label:'PPC Constructora',color:'#7B2D8E'},
+    {key:'gis',label:'PPC GIS',color:'var(--med-blue)'},
+    {key:'metro',label:'PPC Metropolitano',color:'var(--green)'},
+    {key:'rental',label:'PPC CEQ Rental',color:'#00897B'},
+  ];
+  const extra=getProjects().map(p=>({key:p.key,label:'PPC '+p.name,color:p.color}));
+  const areas=[...BUILTIN,...extra];
+  const el=document.getElementById('dash-stats');
+  if(el){
+    let sh='';
+    areas.forEach(a=>{
+      const d=calcPPCData(a.key);
+      sh+=`<div class="stat-card" style="border-left:4px solid ${a.color}"><div class="stat-value" style="color:${d.global>=80?'var(--green)':'var(--red)'}">${d.global}%</div><div class="stat-label">${a.label}</div></div>`;
+    });
+    areas.forEach(a=>{
+      const ar=(S.ar[a.key]||[]).filter(r=>r.estado!=='Levantada').length;
+      sh+=`<div class="stat-card" style="border-left:4px solid ${a.color}"><div class="stat-value" style="color:${a.color}">${ar}</div><div class="stat-label">Restr. ${(a.key).toUpperCase().substring(0,8)}</div></div>`;
+    });
+    el.innerHTML=sh;
+  }
+  rebuildDashboardProjects();
+  areas.forEach(a=>{
+    const k=a.key;
+    const {monthly}=calcPPCData(k);
+    if(_dC[k])_dC[k].destroy();
+    const c=document.getElementById(`dash-chart-ppc-${k}`);
+    if(c)_dC[k]=new Chart(c,{type:'line',data:{labels:MONTHS.slice(1),datasets:[
+      {label:'PPC %',data:monthly.map(x=>x.ppc),borderColor:'#1B2A4A',backgroundColor:'rgba(68,114,196,0.1)',borderWidth:3,fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:a.color||'#4472C4'},
+      {label:'Meta 80%',data:Array(12).fill(80),borderColor:'#C00000',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false},
+    ]},options:{responsive:true,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{position:'bottom'}}}});
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DASHBOARD GLOBAL
+// ══════════════════════════════════════════════════════════════════
+let _dgC={};
+function renderDashGlobal(){
+  const el=document.getElementById('page-dashboard-global');
+  if(!el)return;
+  const BUILTIN_DG=[
+    {key:'inmob',label:'Inmobiliaria',color:'var(--orange)',hex:'#ED7D31'},
+    {key:'const',label:'Constructora',color:'#7B2D8E',hex:'#7B2D8E'},
+    {key:'gis',label:'GIS',color:'var(--med-blue)',hex:'#4472C4'},
+    {key:'metro',label:'Metropolitano',color:'var(--green)',hex:'#548235'},
+    {key:'rental',label:'CEQ Rental',color:'#00897B',hex:'#00897B'},
+  ];
+  const extra_dg=getProjects().map(p=>({key:p.key,label:p.name,color:p.color,hex:p.color}));
+  const areas=[...BUILTIN_DG,...extra_dg];
+
+  // Calculate global monthly PPC
+  const globalMonthly=[];
+  let gTC=0,gTE=0;
+  for(let m=1;m<=12;m++){
+    let mc=0,me=0;
+    areas.forEach(a=>{
+      const acts=flatActs(a.key);
+      acts.forEach(act=>{
+        const pk=getPMKey(act._oi,act._ei,act._ai);
+        const pmS=S.pm[a.key]?.[pk]?.[m];
+        if(pmS&&pmS.plan){
+          const p=S.ppc[a.key]?.[pk]?.[m];
+          if(p?.compr){mc++;gTC++;}
+          if(p?.ejec){me++;gTE++;}
+        }
+      });
+    });
+    globalMonthly.push({m,compr:mc,ejec:me,ppc:mc>0?Math.round(me/mc*100):0});
+  }
+  const globalPPC=gTC>0?Math.round(gTE/gTC*100):0;
+
+  // PPC Acumulado (cumulative)
+  let cumC=0,cumE=0;
+  const ppcAcum=globalMonthly.map(gm=>{
+    cumC+=gm.compr;cumE+=gm.ejec;
+    return cumC>0?Math.round(cumE/cumC*100):0;
+  });
+  const ppcMensual=globalMonthly.map(gm=>gm.ppc);
+  const ppcLB=Array(12).fill(75);
+
+  // Per-area monthly PPC
+  const perArea=areas.map(a=>{
+    const d=calcPPCData(a.key);
+    const restr=(S.ar[a.key]||[]).filter(r=>r.estado!=='Levantada').length;
+    return {...a,data:d,restr};
+  });
+
+  // Total restrictions
+  const totalRestr=perArea.reduce((s,a)=>s+a.restr,0);
+
+  let h=`<div class="page-header">
+    <h2><i class="ri-pie-chart-2-line" style="color:var(--light-blue)"></i> Dashboard Global — Planeamiento 2026</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-pdf btn-sm" onclick="exportPagePDF('page-dashboard-global','landscape','a4')"><i class="ri-file-pdf-2-line"></i> PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('dashboard')"><i class="ri-arrow-left-s-line"></i> Dashboard</button>
+    </div>
+  </div>`;
+
+  // Summary stats row
+  const gCls=globalPPC>=80?'var(--green)':'var(--red)';
+  h+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+    <div class="stat-card" style="border-left:4px solid var(--dark-blue)"><div class="stat-value" style="color:${gCls}">${globalPPC}%</div><div class="stat-label">PPC Global</div></div>
+    <div class="stat-card" style="border-left:4px solid var(--orange)"><div class="stat-value" style="color:var(--orange)">${gTC}</div><div class="stat-label">Total Comprometidas</div></div>
+    <div class="stat-card" style="border-left:4px solid var(--green)"><div class="stat-value" style="color:var(--green)">${gTE}</div><div class="stat-label">Total Ejecutadas</div></div>
+    <div class="stat-card" style="border-left:4px solid var(--red)"><div class="stat-value" style="color:var(--red)">${totalRestr}</div><div class="stat-label">Restricciones Activas</div></div>
+  </div>`;
+
+  // Per-area PPC row
+  h+=`<div class="stats-row" style="margin-bottom:24px">`;
+  perArea.forEach(a=>{
+    const cls=a.data.global>=80?'var(--green)':'var(--red)';
+    h+=`<div class="stat-card" style="border-left:4px solid ${a.color}"><div class="stat-value" style="color:${cls}">${a.data.global}%</div><div class="stat-label">PPC ${a.label}</div></div>`;
+  });
+  h+=`</div>`;
+
+  // MAIN CHART: PPC Global (like the image)
+  h+=`<div class="card" style="padding:24px;margin-bottom:20px">
+    <h3 style="text-align:center;font-size:18px;font-weight:800;margin-bottom:18px;color:var(--dark-blue)">PORCENTAJE DE PLAN COMPLETADO [PPC]</h3>
+    <div style="max-width:900px;margin:0 auto"><canvas id="dg-chart-global"></canvas></div>
+  </div>`;
+
+  // PER-AREA CHARTS ROW
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">`;
+  h+=`<div class="card" style="padding:18px"><h4 style="margin-bottom:10px;color:var(--dark-blue)">PPC Mensual por Área</h4><canvas id="dg-chart-areas"></canvas></div>`;
+  h+=`<div class="card" style="padding:18px"><h4 style="margin-bottom:10px;color:var(--dark-blue)">Comprometidas vs Ejecutadas por Área</h4><canvas id="dg-chart-bars"></canvas></div>`;
+  h+=`</div>`;
+
+  // Per-area restriction chart
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">`;
+  h+=`<div class="card" style="padding:18px"><h4 style="margin-bottom:10px;color:var(--dark-blue)">Restricciones Activas por Área</h4><canvas id="dg-chart-restr"></canvas></div>`;
+  h+=`<div class="card" style="padding:18px"><h4 style="margin-bottom:10px;color:var(--dark-blue)">PPC Acumulado por Área</h4><canvas id="dg-chart-acum-area"></canvas></div>`;
+  h+=`</div>`;
+
+  el.innerHTML=h;
+
+  // Destroy old charts
+  Object.keys(_dgC).forEach(k=>{if(_dgC[k])_dgC[k].destroy();});
+  _dgC={};
+
+  // CHART 1: Global PPC (3 lines like the image)
+  const c1=document.getElementById('dg-chart-global');
+  if(c1)_dgC.global=new Chart(c1,{type:'line',data:{labels:MONTHS.slice(1),datasets:[
+    {label:'PPC LB',data:ppcLB,borderColor:'#1B2A4A',backgroundColor:'transparent',borderWidth:3,pointRadius:4,pointBackgroundColor:'#1B2A4A',tension:0,fill:false},
+    {label:'PPC Mensual',data:ppcMensual,borderColor:'#C00000',backgroundColor:'transparent',borderWidth:3,pointRadius:5,pointBackgroundColor:'#C00000',tension:0.3,fill:false},
+    {label:'PPC Acum',data:ppcAcum,borderColor:'#ED7D31',backgroundColor:'transparent',borderWidth:3,pointRadius:5,pointBackgroundColor:'#ED7D31',tension:0.3,fill:false},
+  ]},options:{responsive:true,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%',stepSize:20}},x:{grid:{display:false}}},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'rect',padding:20,font:{size:13,weight:'bold'}}}}}});
+
+  // CHART 2: Per-area PPC line chart
+  const c2=document.getElementById('dg-chart-areas');
+  if(c2){
+    const datasets=perArea.map(a=>({
+      label:a.label,data:a.data.monthly.map(m=>m.ppc),borderColor:a.hex,backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,pointBackgroundColor:a.hex,tension:0.3,fill:false
+    }));
+    datasets.push({label:'Meta 75%',data:Array(12).fill(75),borderColor:'#999',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false});
+    _dgC.areas=new Chart(c2,{type:'line',data:{labels:MONTHS.slice(1),datasets},options:{responsive:true,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true}}}}});
+  }
+
+  // CHART 3: Per-area bar chart (committed vs executed)
+  const c3=document.getElementById('dg-chart-bars');
+  if(c3)_dgC.bars=new Chart(c3,{type:'bar',data:{labels:perArea.map(a=>a.label),datasets:[
+    {label:'Comprometidas',data:perArea.map(a=>a.data.tc),backgroundColor:perArea.map(a=>a.hex+'99'),borderColor:perArea.map(a=>a.hex),borderWidth:1,borderRadius:4},
+    {label:'Ejecutadas',data:perArea.map(a=>a.data.te),backgroundColor:perArea.map(a=>a.hex),borderRadius:4},
+  ]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+
+  // CHART 4: Restrictions bar chart
+  const c4=document.getElementById('dg-chart-restr');
+  if(c4)_dgC.restr=new Chart(c4,{type:'bar',data:{labels:perArea.map(a=>a.label),datasets:[
+    {label:'Restricciones Activas',data:perArea.map(a=>a.restr),backgroundColor:perArea.map(a=>a.hex),borderRadius:4},
+  ]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}}}});
+
+  // CHART 5: Per-area cumulative PPC
+  const c5=document.getElementById('dg-chart-acum-area');
+  if(c5){
+    const dsAcum=perArea.map(a=>{
+      let cc=0,ce=0;
+      const acumData=a.data.monthly.map(m=>{cc+=m.compr;ce+=m.ejec;return cc>0?Math.round(ce/cc*100):0;});
+      return {label:a.label,data:acumData,borderColor:a.hex,backgroundColor:'transparent',borderWidth:2.5,pointRadius:3,pointBackgroundColor:a.hex,tension:0.3,fill:false};
+    });
+    dsAcum.push({label:'Meta 75%',data:Array(12).fill(75),borderColor:'#999',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false});
+    _dgC.acumArea=new Chart(c5,{type:'line',data:{labels:MONTHS.slice(1),datasets:dsAcum},options:{responsive:true,scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true}}}}});
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EXPORT PDF — ventana de impresión nativa (A3 landscape, 60%)
+// ══════════════════════════════════════════════════════════════════
+function exportPagePDF(pageId, orient, size){
+  const page = document.getElementById(pageId);
+  if(!page){ showToast('Página no encontrada'); return; }
+
+  const styles = Array.from(document.querySelectorAll('style')).map(s=>s.textContent).join('\n');
+  const scriptOpen  = '<scr'+'ipt>';
+  const scriptClose = '</'+'script>';
+  const printScript = scriptOpen +
+    'document.querySelectorAll("button,[contenteditable]").forEach(function(el){' +
+      'if(el.tagName==="BUTTON")el.style.display="none";' +
+      'else el.removeAttribute("contenteditable");' +
+    '});' +
+    'window.onload=function(){setTimeout(function(){window.print();},600);};' +
+    scriptClose;
+
+  const html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">' +
+    '<style>' + styles +
+    '@page{size:' + size + ' ' + orient + ';margin:6mm;}' +
+    'html,body{margin:0;padding:0;background:white!important;}' +
+    'body{zoom:0.6;}' +
+    '.sidebar,.modal-overlay,.toast,.btn,.row-del,.row-move,.toggle-btn,.save-status,.credit{display:none!important;}' +
+    '.main{margin-left:0!important;padding:4px 6px!important;}' +
+    '.page{display:block!important;width:max-content;overflow:visible!important;}' +
+    '.table-wrapper{overflow:visible!important;max-height:none!important;}' +
+    '.card,.card-body{overflow:visible!important;box-shadow:none;}' +
+    'table{width:max-content!important;}' +
+    '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '<'+'/style><'+'/head><body>' +
+    page.outerHTML + printScript +
+    '<'+'/body><'+'/html>';
+
+  const win = window.open('','_blank','width=1300,height=900');
+  if(!win){ showToast('Activa ventanas emergentes en el navegador para exportar PDF', true); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EXPORT EXCEL
+// ══════════════════════════════════════════════════════════════════
+function exportAll(){
+  const wb=XLSX.utils.book_new();
+  ['inmob','const','gis','metro','rental'].forEach(key=>{
+    const label={gis:'GIS',metro:'METRO',inmob:'INMOB',const:'CONST',rental:'RENTAL'}[key]||key.toUpperCase();
+    const acts=flatActs(key);
+
+    // LA
+    const laR=[['#','OG','OE','Código','Actividad','Entregable','Responsable',...MONTHS.slice(1)]];
+    acts.forEach((a,i)=>{
+      const ms=weeksToMonths(a.weeks||[]);
+      laR.push([i+1,a.og,a.oe,a.cod,a.act,a.ent,a.resp,...Array.from({length:12},(_,j)=>ms.includes(j+1)?'■':'')]);
+    });
+    const ws1=XLSX.utils.aoa_to_sheet(laR);ws1['!cols']=[{wch:4},{wch:8},{wch:10},{wch:7},{wch:45},{wch:30},{wch:15},...Array(12).fill({wch:5})];
+    XLSX.utils.book_append_sheet(wb,ws1,`LA ${label}`);
+
+    // PM
+    const pmH=['#','OE','Cód','Actividad','Resp.'];for(let m=1;m<=12;m++){pmH.push(`${MONTHS[m]}-Plan`,`${MONTHS[m]}-Estado`,`${MONTHS[m]}-%`);}
+    const pmR=[pmH];
+    acts.forEach((a,i)=>{
+      const pk=getPMKey(a._oi,a._ei,a._ai);
+      const row=[i+1,a.oe,a.cod,a.act,a.resp];
+      for(let m=1;m<=12;m++){const s=S.pm[key]?.[pk]?.[m];row.push(s?.plan?'✓':'-',s?.plan?s.status:'',s?.plan?(s.avance||0)+'%':'');}
+      pmR.push(row);
+    });
+    const ws2=XLSX.utils.aoa_to_sheet(pmR);ws2['!cols']=[{wch:4},{wch:10},{wch:7},{wch:45},{wch:15},...Array(36).fill({wch:12})];
+    XLSX.utils.book_append_sheet(wb,ws2,`PM ${label}`);
+
+    // PPC
+    const pH=['#','OE','Cód','Actividad','Resp.'];for(let m=1;m<=12;m++){pH.push(`${MONTHS[m]}-Plan`,`${MONTHS[m]}-Compr`,`${MONTHS[m]}-Ejec`);}
+    const pR=[pH];
+    acts.forEach((a,i)=>{
+      const pk=getPMKey(a._oi,a._ei,a._ai);
+      const row=[i+1,a.oe,a.cod,a.act,a.resp];
+      for(let m=1;m<=12;m++){const pmS=S.pm[key]?.[pk]?.[m];const p=S.ppc[key]?.[pk]?.[m];
+        row.push(pmS?.plan?'✓':'-',p?.compr?'Sí':'No',p?.ejec?'Sí':'No');}
+      pR.push(row);
+    });
+    const {monthly,global}=calcPPCData(key);
+    pR.push([]);pR.push(['','','','','Comprometidas',...monthly.flatMap(m=>[m.compr,'',''])]);
+    pR.push(['','','','','Ejecutadas',...monthly.flatMap(m=>[m.ejec,'',''])]);
+    pR.push(['','','','','PPC %',...monthly.flatMap(m=>[m.ppc+'%','',''])]);
+    pR.push(['','','','','PPC Global',global+'%']);
+    const ws3=XLSX.utils.aoa_to_sheet(pR);ws3['!cols']=[{wch:4},{wch:10},{wch:7},{wch:45},{wch:15},...Array(36).fill({wch:10})];
+    XLSX.utils.book_append_sheet(wb,ws3,`PPC ${label}`);
+
+    // AR
+    const arR=[['#','OE','Cód','Descripción','Tipo','Responsable','Fecha Id.','Fecha Req.','Estado','Impacto','Mitigación']];
+    (S.ar[key]||[]).forEach((r,i)=>{arR.push([i+1,r.oe,r.cod,r.desc,r.tipo,r.resp,r.fechaIdent,r.fechaReq,r.estado,r.imp,r.mitigacion]);});
+    const ws4=XLSX.utils.aoa_to_sheet(arR);ws4['!cols']=[{wch:4},{wch:10},{wch:8},{wch:40},{wch:14},{wch:15},{wch:13},{wch:13},{wch:12},{wch:10},{wch:35}];
+    XLSX.utils.book_append_sheet(wb,ws4,`AR ${label}`);
+  });
+  XLSX.writeFile(wb,'Planeamiento_2026_Export.xlsx');
+  showToast('Excel exportado correctamente');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT — Auth state listener
+// ══════════════════════════════════════════════════════════════════
+auth.onAuthStateChanged(async user=>{
+  if(!user){ window.location.href='login.html'; return; }
+  currentUser=user;
+  // Update sidebar user profile
+  const uSection=document.getElementById('sidebar-user');
+  const uName=document.getElementById('user-name');
+  const uEmail=document.getElementById('user-email');
+  const uAvatar=document.getElementById('user-avatar');
+  if(uName)uName.textContent=user.displayName||user.email.split('@')[0];
+  if(uEmail)uEmail.textContent=user.email;
+  if(uAvatar&&user.photoURL){uAvatar.src=user.photoURL;uAvatar.style.display='';}
+  if(uSection)uSection.style.display='flex';
+  // Check role for admin panel visibility
+  const tokenResult = await user.getIdTokenResult(true);
+  const role = tokenResult.claims.role;
+  if(role==='admin'){
+    const adminNav = document.getElementById('nav-admin-section');
+    if(adminNav) adminNav.style.display='block';
+  }
+  // Load data
+  await loadFromFirestore();
+  if(!S.projects) S.projects=[];
+  initProjects();
+  updateDash();
+});
+function logout(){
+  if(confirm('¿Cerrar sesión?'))auth.signOut().then(()=>window.location.href='login.html');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ADMIN PANEL — Gestión de Usuarios
+// ══════════════════════════════════════════════════════════════════
+async function adminFetch(path, options={}){
+  const token = await currentUser.getIdToken();
+  let res;
+  try {
+    res = await fetch(BACKEND_URL + path, {
+      ...options,
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token, ...(options.headers||{}) }
+    });
+  } catch(e) {
+    throw new Error('No se puede conectar al backend. Abre una terminal y ejecuta: cd backend && node src/app.js');
+  }
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error || 'Error en el servidor');
+  return data;
+}
+
+async function renderAdminPanel(){
+  const page = document.getElementById('page-admin');
+  page.innerHTML = `<div class="page-header">
+    <h2 style="margin:0"><i class="ri-shield-user-line"></i> Gestión de Usuarios</h2>
+  </div>
+  <div style="padding:0 24px 24px">
+    <div class="admin-toolbar">
+      <div style="color:#555;font-size:13px" id="admin-count">Cargando usuarios...</div>
+      <button class="btn btn-green" onclick="openCreateUserModal()"><i class="ri-user-add-line"></i> Nuevo Usuario</button>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="admin-tbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>`;
+
+  try {
+    const users = await adminFetch('/admin/users');
+    const tbody = document.getElementById('admin-tbody');
+    document.getElementById('admin-count').textContent = `${users.length} usuario${users.length!==1?'s':''} registrados`;
+    if(!users.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">Sin usuarios</td></tr>'; return; }
+    tbody.innerHTML = users.map(u=>`
+      <tr>
+        <td><strong>${escHtml(u.displayName||'—')}</strong></td>
+        <td>${escHtml(u.email||'—')}</td>
+        <td><span class="role-badge ${u.role||'user'}">${u.role==='admin'?'Admin':'Usuario'}</span></td>
+        <td><span class="status-chip ${u.disabled?'inactive':'active'}">${u.disabled?'Inactivo':'Activo'}</span></td>
+        <td style="color:#888;font-size:11px">${u.creationTime?new Date(u.creationTime).toLocaleDateString('es-PE'):'—'}</td>
+        <td>
+          <div class="admin-action-btns">
+            <button class="btn-role" onclick="changeUserRole('${u.uid}','${u.role||'user'}','${escHtml(u.email||'')}')"><i class="ri-exchange-line"></i> Rol</button>
+            ${u.disabled
+              ? `<button class="btn-enable" onclick="toggleUserStatus('${u.uid}',false,'${escHtml(u.email||'')}')"><i class="ri-user-follow-line"></i> Activar</button>`
+              : `<button class="btn-disable" onclick="toggleUserStatus('${u.uid}',true,'${escHtml(u.email||'')}')"><i class="ri-user-forbid-line"></i> Desactivar</button>`}
+            <button class="btn-reset" onclick="sendPasswordReset('${u.uid}','${escHtml(u.email||'')}')"><i class="ri-lock-password-line"></i> Reset</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch(e){
+    document.getElementById('admin-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:30px;color:#c00">${e.message}</td></tr>`;
+    showToast('Error al cargar usuarios: '+e.message, true);
+  }
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function openCreateUserModal(){
+  const overlay = document.createElement('div');
+  overlay.className = 'admin-modal-overlay';
+  overlay.id = 'admin-modal';
+  overlay.innerHTML = `<div class="admin-modal">
+    <h3><i class="ri-user-add-line"></i> Crear Nuevo Usuario</h3>
+    <div class="fg"><label>Nombre completo</label><input id="am-name" placeholder="Juan Pérez"></div>
+    <div class="fg"><label>Correo electrónico</label><input id="am-email" type="email" placeholder="correo@empresa.com"></div>
+    <div class="fg"><label>Contraseña temporal</label><input id="am-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
+    <div class="fg"><label>Rol</label>
+      <select id="am-role">
+        <option value="user">Usuario</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div id="am-error" style="color:#c00;font-size:12px;min-height:16px"></div>
+    <div class="admin-modal-actions">
+      <button class="btn btn-outline" onclick="closeAdminModal()">Cancelar</button>
+      <button class="btn btn-green" onclick="submitCreateUser()"><i class="ri-save-line"></i> Crear Usuario</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeAdminModal(){
+  const m = document.getElementById('admin-modal');
+  if(m) m.remove();
+}
+
+async function submitCreateUser(){
+  const name  = document.getElementById('am-name').value.trim();
+  const email = document.getElementById('am-email').value.trim();
+  const pass  = document.getElementById('am-pass').value;
+  const role  = document.getElementById('am-role').value;
+  const errEl = document.getElementById('am-error');
+  if(!email||!pass){ errEl.textContent='Correo y contraseña son requeridos.'; return; }
+  if(pass.length<8){ errEl.textContent='La contraseña debe tener al menos 8 caracteres.'; return; }
+  errEl.textContent='';
+  try {
+    await adminFetch('/admin/users', { method:'POST', body: JSON.stringify({displayName:name, email, password:pass, role}) });
+    closeAdminModal();
+    showToast(`Usuario ${email} creado correctamente`);
+    renderAdminPanel();
+  } catch(e){ errEl.textContent = e.message; }
+}
+
+async function changeUserRole(uid, currentRole, email){
+  const newRole = currentRole==='admin' ? 'user' : 'admin';
+  if(!confirm(`Cambiar rol de "${email}" a ${newRole==='admin'?'Admin':'Usuario'}?`)) return;
+  try {
+    await adminFetch(`/admin/users/${uid}/role`, { method:'PATCH', body: JSON.stringify({role:newRole}) });
+    showToast(`Rol actualizado a ${newRole}`);
+    renderAdminPanel();
+  } catch(e){ showToast('Error: '+e.message, true); }
+}
+
+async function toggleUserStatus(uid, disable, email){
+  const accion = disable ? 'desactivar' : 'activar';
+  if(!confirm(`¿${accion.charAt(0).toUpperCase()+accion.slice(1)} a "${email}"?`)) return;
+  try {
+    await adminFetch(`/admin/users/${uid}/status`, { method:'PATCH', body: JSON.stringify({disabled:disable}) });
+    showToast(`Usuario ${disable?'desactivado':'activado'} correctamente`);
+    renderAdminPanel();
+  } catch(e){ showToast('Error: '+e.message, true); }
+}
+
+async function sendPasswordReset(uid, email){
+  if(!confirm(`¿Enviar enlace de restablecimiento de contraseña a "${email}"?`)) return;
+  try {
+    const res = await adminFetch(`/admin/users/${uid}/reset-password`, { method:'POST' });
+    showToast('Enlace generado — revisar consola del navegador');
+    console.log('Reset link:', res.resetLink);
+  } catch(e){ showToast('Error: '+e.message, true); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EXCEL IMPORT / TEMPLATE
+// ══════════════════════════════════════════════════════════════════
+function downloadLATemplate(key){
+  const nameMap={gis:'GIS',metro:'METROPOLITANO',inmob:'INMOBILIARIA',const:'CONSTRUCTORA',rental:'CEQ_RENTAL'};
+  const sheetName=nameMap[key]||key.toUpperCase();
+  const header=['Tipo','Código','Descripción / Nombre','KPI o Entregable','Responsable'];
+  for(let i=1;i<=52;i++) header.push('S'+i);
+  const blank=Array(52).fill('');
+  const rows=[
+    header,
+    ['OG','OG-01','Nombre del Objetivo General','',''].concat(blank),
+    ['OE','OE-01.1','Nombre del Objetivo Específico','KPI del OE',''].concat(blank),
+    ['ACT','A01','Nombre de la actividad 1','Entregable esperado','Responsable','1','1','1'].concat(Array(49).fill('')),
+    ['ACT','A02','Nombre de la actividad 2','Entregable 2','Responsable','','','','1','1'].concat(Array(47).fill('')),
+    ['OG','OG-02','Segundo Objetivo General','',''].concat(blank),
+    ['OE','OE-02.1','OE del segundo OG','KPI',''].concat(blank),
+    ['ACT','A01','Actividad del segundo OG','Entregable','Resp','','','','','','1'].concat(Array(46).fill('')),
+  ];
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:8},{wch:12},{wch:42},{wch:35},{wch:18},...Array(52).fill({wch:4})];
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  const instrRows=[
+    ['INSTRUCCIONES DE IMPORTACIÓN — LPS 2026'],[''],
+    ['Columna','Descripción'],
+    ['Tipo','OG = Objetivo General  |  OE = Objetivo Específico  |  ACT = Actividad'],
+    ['Código','Código corto: OG-01, OE-01.1, A01, etc.'],
+    ['Descripción','Nombre completo del OG, OE o Actividad'],
+    ['KPI o Entregable','Para OE: KPI del objetivo. Para ACT: Entregable esperado.'],
+    ['Responsable','Solo para ACT: persona o área responsable'],
+    ['S1..S52','Solo para ACT: poner 1 en semanas activas, dejar vacío en inactivas'],[''],
+    ['ORDEN IMPORTANTE:'],
+    ['1. Primero va la fila OG'],
+    ['2. Debajo van las filas OE que pertenecen a ese OG'],
+    ['3. Debajo de cada OE van sus ACT (actividades)'],
+    ['4. Para el siguiente OG, poner una nueva fila OG y repetir'],
+  ];
+  const wsI=XLSX.utils.aoa_to_sheet(instrRows);
+  wsI['!cols']=[{wch:22},{wch:72}];
+  XLSX.utils.book_append_sheet(wb,wsI,'Instrucciones');
+  XLSX.writeFile(wb,`Plantilla_LPS_${sheetName}.xlsx`);
+  showToast('Plantilla descargada correctamente');
+}
+
+function importLAFromExcel(key, inputEl){
+  const file=inputEl.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const data=[];let curOG=null,curOE=null;
+      for(let r=1;r<rows.length;r++){
+        const row=rows[r];
+        const tipo=String(row[0]||'').trim().toUpperCase();
+        const cod=String(row[1]||'').trim();
+        const desc=String(row[2]||'').trim();
+        const kpiEnt=String(row[3]||'').trim();
+        const resp=String(row[4]||'').trim();
+        if(!tipo||!desc) continue;
+        if(tipo==='OG'){ curOG={og:cod,og_desc:desc,oes:[]};curOE=null;data.push(curOG); }
+        else if(tipo==='OE'){ if(!curOG)continue; curOE={oe:cod,oe_desc:desc,kpi:kpiEnt,acts:[]};curOG.oes.push(curOE); }
+        else if(tipo==='ACT'){
+          if(!curOE)continue;
+          const weeks=[];
+          for(let c=5;c<Math.min(row.length,57);c++){
+            const v=row[c];
+            if(v===1||v==='1'||String(v).toLowerCase()==='x') weeks.push(c-4);
+          }
+          curOE.acts.push({cod,act:desc,ent:kpiEnt,resp,weeks});
+        }
+      }
+      if(!data.length){ showToast('No se encontraron datos válidos. Verifica el formato.',true);inputEl.value='';return; }
+      const reemplazar=confirm(`Se encontraron ${data.length} OG(s).\n\nOK = Reemplazar todos los datos del área\nCancelar = Agregar al final`);
+      S.la[key]=reemplazar?data:(S.la[key]||[]).concat(data);
+      save();renderLA(key);
+      showToast(`Importados ${data.length} OG(s) correctamente`);
+    } catch(err){ showToast('Error al leer el archivo: '+err.message,true); }
+    inputEl.value='';
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HELP MODAL
+// ══════════════════════════════════════════════════════════════════
+function showHelp(){
+  if(document.getElementById('help-modal')) return;
+  const o=document.createElement('div');
+  o.id='help-modal';o.className='admin-modal-overlay';
+  o.innerHTML=`<div class="admin-modal" style="max-width:660px;max-height:85vh;overflow-y:auto">
+    <h3><i class="ri-question-line"></i> Ayuda — LPS 2026</h3>
+    <div style="font-size:13px;line-height:1.75;color:#333">
+      <h4 style="color:#1B2A4A;margin:10px 0 5px"><i class="ri-calendar-schedule-line"></i> Lookahead Anual</h4>
+      <ul style="padding-left:16px">
+        <li><b>Click</b> en celda semanal → activa/desactiva ■ esa semana</li>
+        <li><b>Doble-click</b> en cualquier texto → editar directamente</li>
+        <li>Botón <b>Agregar OG</b> → nuevo Objetivo General</li>
+        <li>Botón <b>⊕ OE</b> en fila OG → nuevo Objetivo Específico</li>
+        <li>Botón <b>⊕ Act.</b> en fila OE → nueva Actividad</li>
+        <li><b>▲ ▼</b> en cada actividad → reordenar dentro del OE</li>
+        <li><b>✕</b> → eliminar fila (pide confirmación)</li>
+        <li>Botón <b>Plantilla</b> → descarga Excel para importar datos</li>
+        <li>Botón <b>Importar</b> → carga el Excel relleno (reemplaza o añade)</li>
+      </ul>
+      <h4 style="color:#1B2A4A;margin:10px 0 5px"><i class="ri-task-line"></i> Plan Mensual</h4>
+      <ul style="padding-left:16px">
+        <li>Selecciona el mes con las pestañas superiores</li>
+        <li>Las actividades se derivan automáticamente del Lookahead</li>
+        <li>Columna <b>Plan ✓</b>: marca las actividades planificadas para el mes</li>
+        <li>Columna <b>Real ✓</b>: al cierre del mes, marca las ejecutadas</li>
+        <li>El <b>PPC</b> se calcula automáticamente</li>
+      </ul>
+      <h4 style="color:#1B2A4A;margin:10px 0 5px"><i class="ri-line-chart-line"></i> PPC</h4>
+      <ul style="padding-left:16px">
+        <li>Historial semanal y mensual de cumplimiento</li>
+        <li>La línea base (LB) es 80% — editable con doble-click</li>
+        <li>Se alimenta automáticamente del Plan Mensual</li>
+      </ul>
+      <h4 style="color:#1B2A4A;margin:10px 0 5px"><i class="ri-alarm-warning-line"></i> Restricciones</h4>
+      <ul style="padding-left:16px">
+        <li>Registra restricciones que bloquean actividades</li>
+        <li>Campos: Tipo, Descripción, Fecha, Responsable, Estado</li>
+        <li>Al marcar <b>Levantada</b> se actualiza el estado</li>
+      </ul>
+      <h4 style="color:#1B2A4A;margin:10px 0 5px"><i class="ri-upload-line"></i> Importar desde cero</h4>
+      <ul style="padding-left:16px">
+        <li>Descarga la <b>Plantilla Excel</b> desde el Lookahead de cada área</li>
+        <li>Llena la hoja siguiendo las instrucciones de la pestaña "Instrucciones"</li>
+        <li>Formato: columnas Tipo / Código / Descripción / KPI-Entregable / Responsable / S1..S52</li>
+        <li>Usa <b>Importar</b> para subir el archivo — puedes reemplazar o agregar</li>
+      </ul>
+      <h4 style="color:#1B2A4A;margin:10px 0 5px"><i class="ri-shield-user-line"></i> Gestión de Usuarios <span class="admin-badge">ADMIN</span></h4>
+      <ul style="padding-left:16px">
+        <li><b>Nuevo Usuario</b>: crea usuario con correo, contraseña y rol</li>
+        <li><b>Rol</b>: alterna entre Admin y Usuario</li>
+        <li><b>Activar/Desactivar</b>: bloquea o habilita el acceso</li>
+        <li><b>Reset</b>: genera enlace de contraseña (aparece en consola del navegador F12)</li>
+        <li>Requiere que el backend esté corriendo: <code>cd backend &amp;&amp; node src/app.js</code></li>
+      </ul>
+      <p style="margin-top:12px;font-size:11px;color:#888">Los datos se sincronizan automáticamente con Firestore (nube) y localStorage (local).</p>
+    </div>
+    <div class="admin-modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('help-modal').remove()">Cerrar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(o);
+}
+</script>
+</body>
+</html>

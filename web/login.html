@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LPS 2026 — Acceso</title>
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1B2A4A 0%, #2E5090 60%, #4472C4 100%);
+}
+.login-card {
+  background: white; border-radius: 16px; padding: 44px 40px;
+  width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.login-logo {
+  text-align: center; margin-bottom: 28px;
+}
+.login-logo i { font-size: 42px; color: #2E5090; }
+.login-logo h1 { color: #1B2A4A; font-size: 22px; margin-top: 8px; }
+.login-logo p { color: #777; font-size: 13px; margin-top: 4px; }
+
+.divider {
+  display: flex; align-items: center; gap: 10px;
+  color: #aaa; font-size: 12px; margin: 20px 0;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: #e5e5e5;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; color: #555; margin-bottom: 5px; font-weight: 600; }
+.form-group input {
+  width: 100%; padding: 11px 14px; border: 1px solid #ddd;
+  border-radius: 8px; font-size: 14px; transition: border-color 0.2s;
+  outline: none;
+}
+.form-group input:focus { border-color: #4472C4; box-shadow: 0 0 0 3px rgba(68,114,196,0.15); }
+
+.btn-google {
+  width: 100%; padding: 12px; border: 2px solid #ddd; background: white;
+  border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all 0.2s; color: #333;
+}
+.btn-google:hover { border-color: #4472C4; background: #f5f8ff; }
+.btn-google img { width: 20px; height: 20px; }
+
+.btn-email {
+  width: 100%; padding: 12px; background: #2E5090; color: white;
+  border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-email:hover { background: #1B2A4A; }
+
+.error-msg {
+  color: #C00000; font-size: 12px; margin-top: 12px;
+  text-align: center; min-height: 18px;
+}
+.loading { opacity: 0.6; pointer-events: none; }
+.spinner {
+  display: none; text-align: center; margin-top: 10px;
+  color: #4472C4; font-size: 13px;
+}
+.spinner.show { display: block; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="login-logo">
+    <i class="ri-bar-chart-grouped-line"></i>
+    <h1>LPS 2026</h1>
+    <p>Last Planner System — Planeamiento</p>
+  </div>
+
+  <!-- Google Sign-In -->
+  <button class="btn-google" onclick="loginGoogle()" id="btn-google">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+    Continuar con Google
+  </button>
+
+  <div class="divider">o ingresa con correo</div>
+
+  <!-- Email/Password -->
+  <div class="form-group">
+    <label>Correo electrónico</label>
+    <input type="email" id="email" placeholder="usuario@empresa.com" onkeydown="if(event.key==='Enter')loginEmail()" />
+  </div>
+  <div class="form-group">
+    <label>Contraseña</label>
+    <input type="password" id="pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginEmail()" />
+  </div>
+  <button class="btn-email" onclick="loginEmail()">
+    <i class="ri-login-box-line"></i> Ingresar
+  </button>
+
+  <div class="error-msg" id="error-msg"></div>
+  <div class="spinner" id="spinner"><i class="ri-loader-4-line"></i> Conectando...</div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDc1oxoUhWU-SM1670Hfli2b3PdI5VHcYg",
+    authDomain: "planeamiento-alcanza-89ed4.firebaseapp.com",
+    projectId: "planeamiento-alcanza-89ed4",
+    storageBucket: "planeamiento-alcanza-89ed4.firebasestorage.app",
+    messagingSenderId: "767537791583",
+    appId: "1:767537791583:web:2422990459871870a551ea"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+  // Si ya tiene sesión activa, redirigir directo
+  auth.onAuthStateChanged(user => {
+    if(user) window.location.href = 'Planeamiento_2026.html';
+  });
+
+  function setLoading(v){
+    document.querySelector('.login-card').classList.toggle('loading', v);
+    document.getElementById('spinner').classList.toggle('show', v);
+  }
+
+  function showError(msg){
+    document.getElementById('error-msg').textContent = msg;
+  }
+
+  async function loginGoogle(){
+    setLoading(true); showError('');
+    try {
+      await auth.signInWithPopup(googleProvider);
+      window.location.href = 'Planeamiento_2026.html';
+    } catch(e) {
+      setLoading(false);
+      const msgs = {
+        'auth/popup-closed-by-user': 'Se cerró la ventana de inicio de sesión.',
+        'auth/cancelled-popup-request': '',
+        'auth/popup-blocked': 'El navegador bloqueó el popup. Permite ventanas emergentes para este sitio.'
+      };
+      showError(msgs[e.code] || 'Error al iniciar sesión con Google.');
+    }
+  }
+
+  async function loginEmail(){
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('pass').value;
+    if(!email || !pass){ showError('Completa correo y contraseña.'); return; }
+    setLoading(true); showError('');
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+      window.location.href = 'Planeamiento_2026.html';
+    } catch(e) {
+      setLoading(false);
+      const msgs = {
+        'auth/user-not-found': 'No existe cuenta con ese correo.',
+        'auth/wrong-password': 'Contraseña incorrecta.',
+        'auth/invalid-email': 'Correo inválido.',
+        'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos.',
+        'auth/invalid-credential': 'Correo o contraseña incorrectos.'
+      };
+      showError(msgs[e.code] || 'Error al ingresar. Verifica tus datos.');
+    }
+  }
+</script>
+</body>
+</html>

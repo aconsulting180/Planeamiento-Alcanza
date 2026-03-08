@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    function isUser() {
+      // tanto 'user' como 'admin' pueden leer/escribir datos operativos
+      return isSignedIn() && (
+        request.auth.token.role == 'user' ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    // ── Datos de planeamiento ─────────────────────────────────────────────────
+    // Colección: planeamientos  →  doc: lps2026v5  (y futuros docs)
+    match /planeamientos/{docId} {
+      allow read, write: if isUser();
+    }
+
+    // ── Perfiles de usuario ───────────────────────────────────────────────────
+    // Solo los admins crean / modifican perfiles; el propio usuario puede leerlo
+    match /users/{userId} {
+      allow read:  if isSignedIn() && (isAdmin() || request.auth.uid == userId);
+      allow write: if isAdmin();
+    }
+  }
+}
