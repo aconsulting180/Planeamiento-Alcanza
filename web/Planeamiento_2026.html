@@ -399,6 +399,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
@@ -903,14 +904,23 @@ function startRealtimeSync(onReady){
     console.warn('onSnapshot no disponible:',e.message);
     loadFromFirestore().then(markReady);
   }
-  // Backup: polling cada 10s garantizado
+  // Backup: polling cada 5s cuando la pestaña está visible
   _syncInterval=setInterval(async()=>{
-    if(!currentUser)return;
+    if(!currentUser||document.hidden)return;
     try{
       const snap=await db.collection('planeamientos').doc(SK).get({source:'server'});
       if(snap.exists)applyRemoteUpdate(snap.data());
     }catch(e){console.warn('Poll sync error:',e.message);}
-  },10000);
+  },5000);
+  // Al volver a la pestaña, sincronizar inmediatamente
+  document.addEventListener('visibilitychange',async()=>{
+    if(!document.hidden&&currentUser){
+      try{
+        const snap=await db.collection('planeamientos').doc(SK).get({source:'server'});
+        if(snap.exists)applyRemoteUpdate(snap.data());
+      }catch(e){}
+    }
+  });
 }
 function save(){
   _lastLocalSave=Date.now();
