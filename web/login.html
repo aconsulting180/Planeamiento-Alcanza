@@ -123,6 +123,18 @@ body {
     if(user) window.location.href = 'Planeamiento_2026.html';
   });
 
+  // Capturar resultado de redirect de Google
+  auth.getRedirectResult().then(result => {
+    if(result && result.user) window.location.href = 'Planeamiento_2026.html';
+  }).catch(e => {
+    const msgs = {
+      'auth/account-exists-with-different-credential': 'Ya existe una cuenta con ese correo usando otro método.',
+      'auth/cancelled-popup-request': ''
+    };
+    showError(msgs[e.code] || ('Error Google: ' + e.message));
+    setLoading(false);
+  });
+
   function setLoading(v){
     document.querySelector('.login-card').classList.toggle('loading', v);
     document.getElementById('spinner').classList.toggle('show', v);
@@ -135,16 +147,10 @@ body {
   async function loginGoogle(){
     setLoading(true); showError('');
     try {
-      await auth.signInWithPopup(googleProvider);
-      window.location.href = 'Planeamiento_2026.html';
+      await auth.signInWithRedirect(googleProvider);
     } catch(e) {
       setLoading(false);
-      const msgs = {
-        'auth/popup-closed-by-user': 'Se cerró la ventana de inicio de sesión.',
-        'auth/cancelled-popup-request': '',
-        'auth/popup-blocked': 'El navegador bloqueó el popup. Permite ventanas emergentes para este sitio.'
-      };
-      showError(msgs[e.code] || 'Error al iniciar sesión con Google.');
+      showError('Error al iniciar sesión con Google: ' + e.message);
     }
   }
 
