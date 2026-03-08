@@ -265,8 +265,8 @@ tr:hover .row-move{opacity:1;}
     </div>
     <!-- Proyectos adicionales generados dinámicamente -->
     <div id="nav-extra-projects"></div>
-    <!-- Crear Proyecto (siempre visible) -->
-    <div class="nav-item nav-item-add" onclick="openCreateProjectModal()" title="Crear nuevo proyecto">
+    <!-- Crear Proyecto (solo admin) -->
+    <div class="nav-item nav-item-add" id="nav-add-project" onclick="openCreateProjectModal()" title="Crear nuevo proyecto" style="display:none">
       <span class="icon"><i class="ri-add-circle-line"></i></span><span>Crear Proyecto</span>
     </div>
     <!-- Administración (solo admin, siempre al final) -->
@@ -403,6 +403,7 @@ db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
+let currentUserRole = null;
 let _lastLocalSave = 0;
 let _unsubscribeSync = null;
 let _syncInterval = null;
@@ -1076,6 +1077,7 @@ function initProjects(){
 }
 
 function openCreateProjectModal(){
+  if(currentUserRole!=='admin'){showToast('Solo los administradores pueden crear proyectos',true);return;}
   if(document.getElementById('proj-modal')) return;
   const existing = getProjects();
   const overlay = document.createElement('div');
@@ -1144,6 +1146,7 @@ function submitCreateProject(){
 }
 
 function deleteProject(key){
+  if(currentUserRole!=='admin'){showToast('Solo los administradores pueden eliminar proyectos',true);return;}
   if(!confirm('¿Eliminar el proyecto y todos sus datos? No se puede deshacer.')) return;
   if(S.projects) S.projects = S.projects.filter(p=>p.key!==key);
   ['la','pm','ppc','ar'].forEach(mod=>{ if(S[mod]) delete S[mod][key]; });
@@ -2027,10 +2030,14 @@ auth.onAuthStateChanged(async user=>{
   // Check role for admin panel visibility
   const tokenResult = await user.getIdTokenResult(true);
   const role = tokenResult.claims.role;
+  currentUserRole = role;
   if(role==='admin'){
     const adminNav = document.getElementById('nav-admin-section');
     if(adminNav) adminNav.style.display='block';
   }
+  // Mostrar "Crear Proyecto" solo a admins
+  const addProjBtn = document.getElementById('nav-add-project');
+  if(addProjBtn) addProjBtn.style.display = role==='admin' ? '' : 'none';
   // Load data with real-time sync
   await new Promise(resolve=>startRealtimeSync(resolve));
   if(!S.projects)S.projects=[];
