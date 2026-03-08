@@ -29,6 +29,11 @@ app.get('/health', (_, res) => {
   res.json({ ok: true, project: 'planeamiento-alcanza-89ed4', ts: new Date().toISOString() });
 });
 
+// ── Raíz ──
+app.get('/', (_, res) => {
+  res.json({ service: 'LPS Backend', status: 'online', version: '1.0.0' });
+});
+
 // ── Inicio ──
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
