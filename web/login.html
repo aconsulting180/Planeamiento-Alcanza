@@ -118,39 +118,50 @@ body {
   const auth = firebase.auth();
   const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-  // Si ya tiene sesión activa, redirigir directo
-  auth.onAuthStateChanged(user => {
-    if(user) window.location.href = 'Planeamiento_2026.html';
-  });
-
-  // Capturar resultado de redirect de Google
-  auth.getRedirectResult().then(result => {
-    if(result && result.user) window.location.href = 'Planeamiento_2026.html';
-  }).catch(e => {
-    const msgs = {
-      'auth/account-exists-with-different-credential': 'Ya existe una cuenta con ese correo usando otro método.',
-      'auth/cancelled-popup-request': ''
-    };
-    showError(msgs[e.code] || ('Error Google: ' + e.message));
-    setLoading(false);
-  });
-
   function setLoading(v){
     document.querySelector('.login-card').classList.toggle('loading', v);
     document.getElementById('spinner').classList.toggle('show', v);
   }
-
   function showError(msg){
-    document.getElementById('error-msg').textContent = msg;
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.fontSize = msg ? '13px' : '';
+    el.style.padding = msg ? '10px' : '';
+    el.style.background = msg ? '#fff0f0' : '';
+    el.style.borderRadius = msg ? '8px' : '';
   }
+  function goApp(){ window.location.href = 'Planeamiento_2026.html'; }
+
+  // Si ya tiene sesión activa, redirigir directo
+  auth.onAuthStateChanged(user => { if(user) goApp(); });
+
+  // Capturar resultado de redirect pendiente (si viene de signInWithRedirect)
+  auth.getRedirectResult().then(result => {
+    if(result && result.user) goApp();
+  }).catch(e => {
+    if(e.code && e.code !== 'auth/cancelled-popup-request'){
+      showError('Error Google (' + e.code + '): ' + e.message);
+      setLoading(false);
+    }
+  });
 
   async function loginGoogle(){
     setLoading(true); showError('');
     try {
-      await auth.signInWithRedirect(googleProvider);
+      // Intentar popup primero (más rápido)
+      await auth.signInWithPopup(googleProvider);
+      goApp();
     } catch(e) {
-      setLoading(false);
-      showError('Error al iniciar sesión con Google: ' + e.message);
+      if(e.code === 'auth/popup-blocked' || e.code === 'auth/unauthorized-domain' || e.code === 'auth/operation-not-supported-in-this-environment'){
+        // Fallback a redirect si popup falla
+        try { await auth.signInWithRedirect(googleProvider); }
+        catch(e2){ setLoading(false); showError('Error: ' + e2.message); }
+      } else if(e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request'){
+        setLoading(false);
+      } else {
+        setLoading(false);
+        showError('Error Google (' + e.code + '): ' + e.message);
+      }
     }
   }
 
