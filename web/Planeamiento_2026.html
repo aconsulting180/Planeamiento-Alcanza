@@ -410,6 +410,7 @@ let _unsubscribeSync = null;
 let _syncInterval = null;
 let _remoteVersion = '';
 let ADMIN_BACKEND_ONLINE = true;
+let ADMIN_MODE_NOTICE_SHOWN = false;
 const BACKEND_URL = (['localhost', '127.0.0.1'].includes(window.location.hostname))
   ? 'http://localhost:3000'
   : 'https://us-central1-planeamiento-alcanza.cloudfunctions.net/api';
@@ -2198,7 +2199,10 @@ async function renderAdminPanel(){
             </div>
           </td>
         </tr>`).join('');
-      showToast('Backend admin no disponible: gestion operando con Firestore.', true);
+      if(!ADMIN_MODE_NOTICE_SHOWN){
+        showToast('Modo Firestore activo: la gestion de usuarios funciona sin backend.');
+        ADMIN_MODE_NOTICE_SHOWN = true;
+      }
     } catch(fbErr) {
       document.getElementById('admin-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:30px;color:#c00">${fbErr.message}</td></tr>`;
       showToast('Error al cargar usuarios: '+fbErr.message, true);
