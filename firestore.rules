@@ -7,15 +7,34 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function profilePath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return isSignedIn() && exists(profilePath());
+    }
+
+    function isActive() {
+      return isSignedIn() && (!hasProfile() || get(profilePath()).data.active != false);
+    }
+
     function isAdmin() {
-      return isSignedIn() && request.auth.token.role == 'admin';
+      return isActive() && (
+        request.auth.token.role == 'admin' ||
+        (hasProfile() && get(profilePath()).data.role == 'admin')
+      );
     }
 
     function isUser() {
       // tanto 'user' como 'admin' pueden leer/escribir datos operativos
-      return isSignedIn() && (
+      return isActive() && (
         request.auth.token.role == 'user' ||
-        request.auth.token.role == 'admin'
+        request.auth.token.role == 'admin' ||
+        (hasProfile() && (
+          get(profilePath()).data.role == 'user' ||
+          get(profilePath()).data.role == 'admin'
+        ))
       );
     }
 
@@ -29,7 +48,7 @@ service cloud.firestore {
     // Solo los admins crean / modifican perfiles; el propio usuario puede leerlo
     match /users/{userId} {
       allow read:  if isSignedIn() && (isAdmin() || request.auth.uid == userId);
-      allow write: if isAdmin();
+      allow write: if isAdmin() || request.auth.uid == userId;
     }
   }
 }

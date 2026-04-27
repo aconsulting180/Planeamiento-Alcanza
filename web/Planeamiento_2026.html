@@ -404,6 +404,7 @@ const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
 let currentUserRole = null;
+let currentUserProfile = null;
 let _lastLocalSave = 0;
 let _unsubscribeSync = null;
 let _syncInterval = null;
@@ -2032,11 +2033,21 @@ auth.onAuthStateChanged(async user=>{
   if(uSection)uSection.style.display='flex';
   // Check role for admin panel visibility
   const tokenResult = await user.getIdTokenResult(true);
-  const role = tokenResult.claims.role;
+  const profile = await loadCurrentUserProfile(user.uid);
+  if(profile && profile.active === false){
+    alert('Tu usuario esta inactivo. Contacta a un administrador.');
+    await auth.signOut();
+    window.location.href='login.html';
+    return;
+  }
+  const role = tokenResult.claims.role || (profile && profile.role) || 'user';
   currentUserRole = role;
   if(role==='admin'){
     const adminNav = document.getElementById('nav-admin-section');
     if(adminNav) adminNav.style.display='block';
+  } else {
+    const adminNav = document.getElementById('nav-admin-section');
+    if(adminNav) adminNav.style.display='none';
   }
   // Mostrar "Crear Proyecto" solo a admins
   const addProjBtn = document.getElementById('nav-add-project');
@@ -2089,6 +2100,34 @@ async function loadUsersFromFirestore(){
   });
 }
 
+async function loadCurrentUserProfile(uid){
+  const doc = await db.collection('users').doc(uid).get();
+  currentUserProfile = doc.exists ? (doc.data() || {}) : null;
+  return currentUserProfile;
+}
+
+async function createUserWithSecondaryApp({ name, email, password, role }){
+  const appName = `admin-create-${Date.now()}`;
+  const secondaryApp = firebase.initializeApp(firebase.app().options, appName);
+  try {
+    const credential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+    if (name && credential.user) {
+      await credential.user.updateProfile({ displayName: name });
+    }
+    await db.collection('users').doc(credential.user.uid).set({
+      email,
+      displayName: name || '',
+      role,
+      active: true,
+      createdAt: new Date().toISOString(),
+      createdBy: currentUser.email || 'system'
+    }, { merge: true });
+    return credential.user;
+  } finally {
+    await secondaryApp.delete();
+  }
+}
+
 async function renderAdminPanel(){
   const page = document.getElementById('page-admin');
   page.innerHTML = `<div class="page-header">
@@ -2137,13 +2176,7 @@ async function renderAdminPanel(){
       ADMIN_BACKEND_ONLINE = false;
       const users = await loadUsersFromFirestore();
       const tbody = document.getElementById('admin-tbody');
-      const createBtn = document.getElementById('btn-admin-create');
-      if (createBtn) {
-        createBtn.disabled = true;
-        createBtn.style.opacity = '0.55';
-        createBtn.title = 'Habilita Firebase Functions (Blaze) para gestionar usuarios.';
-      }
-      document.getElementById('admin-count').textContent = `${users.length} usuario${users.length!==1?'s':''} (modo lectura Firestore)`;
+      document.getElementById('admin-count').textContent = `${users.length} usuario${users.length!==1?'s':''} (modo Firestore)`;
       if(!users.length){
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">Sin usuarios</td></tr>';
         return;
@@ -2155,9 +2188,17 @@ async function renderAdminPanel(){
           <td><span class="role-badge ${u.role||'user'}">${u.role==='admin'?'Admin':'Usuario'}</span></td>
           <td><span class="status-chip ${u.disabled?'inactive':'active'}">${u.disabled?'Inactivo':'Activo'}</span></td>
           <td style="color:#888;font-size:11px">${u.creationTime?new Date(u.creationTime).toLocaleDateString('es-PE'):'—'}</td>
-          <td style="color:#888;font-size:11px">Requiere backend admin (Functions)</td>
+          <td>
+            <div class="admin-action-btns">
+              <button class="btn-role" onclick="changeUserRole('${u.uid}','${u.role||'user'}','${escHtml(u.email||'')}')"><i class="ri-exchange-line"></i> Rol</button>
+              ${u.disabled
+                ? `<button class="btn-enable" onclick="toggleUserStatus('${u.uid}',false,'${escHtml(u.email||'')}')"><i class="ri-user-follow-line"></i> Activar</button>`
+                : `<button class="btn-disable" onclick="toggleUserStatus('${u.uid}',true,'${escHtml(u.email||'')}')"><i class="ri-user-forbid-line"></i> Desactivar</button>`}
+              <button class="btn-reset" onclick="sendPasswordReset('${u.uid}','${escHtml(u.email||'')}')"><i class="ri-lock-password-line"></i> Reset</button>
+            </div>
+          </td>
         </tr>`).join('');
-      showToast('Backend admin no disponible: se activo modo lectura desde Firestore.', true);
+      showToast('Backend admin no disponible: gestion operando con Firestore.', true);
     } catch(fbErr) {
       document.getElementById('admin-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:30px;color:#c00">${fbErr.message}</td></tr>`;
       showToast('Error al cargar usuarios: '+fbErr.message, true);
@@ -2168,10 +2209,6 @@ async function renderAdminPanel(){
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function openCreateUserModal(){
-  if(!ADMIN_BACKEND_ONLINE){
-    showToast('Modo gratis activo: para crear/editar usuarios debes habilitar Firebase Functions (plan Blaze).', true);
-    return;
-  }
   const overlay = document.createElement('div');
   overlay.className = 'admin-modal-overlay';
   overlay.id = 'admin-modal';
@@ -2210,7 +2247,11 @@ async function submitCreateUser(){
   if(pass.length<8){ errEl.textContent='La contraseña debe tener al menos 8 caracteres.'; return; }
   errEl.textContent='';
   try {
-    await adminFetch('/admin/users', { method:'POST', body: JSON.stringify({displayName:name, email, password:pass, role}) });
+    if(ADMIN_BACKEND_ONLINE){
+      await adminFetch('/admin/users', { method:'POST', body: JSON.stringify({displayName:name, email, password:pass, role}) });
+    } else {
+      await createUserWithSecondaryApp({ name, email, password: pass, role });
+    }
     closeAdminModal();
     showToast(`Usuario ${email} creado correctamente`);
     renderAdminPanel();
@@ -2218,43 +2259,44 @@ async function submitCreateUser(){
 }
 
 async function changeUserRole(uid, currentRole, email){
-  if(!ADMIN_BACKEND_ONLINE){
-    showToast('Accion no disponible sin backend admin.', true);
-    return;
-  }
   const newRole = currentRole==='admin' ? 'user' : 'admin';
   if(!confirm(`Cambiar rol de "${email}" a ${newRole==='admin'?'Admin':'Usuario'}?`)) return;
   try {
-    await adminFetch(`/admin/users/${uid}/role`, { method:'PATCH', body: JSON.stringify({role:newRole}) });
+    if(ADMIN_BACKEND_ONLINE){
+      await adminFetch(`/admin/users/${uid}/role`, { method:'PATCH', body: JSON.stringify({role:newRole}) });
+    } else {
+      await db.collection('users').doc(uid).set({ role:newRole, updatedAt:new Date().toISOString(), updatedBy: currentUser.email || 'system' }, { merge:true });
+    }
     showToast(`Rol actualizado a ${newRole}`);
     renderAdminPanel();
   } catch(e){ showToast('Error: '+e.message, true); }
 }
 
 async function toggleUserStatus(uid, disable, email){
-  if(!ADMIN_BACKEND_ONLINE){
-    showToast('Accion no disponible sin backend admin.', true);
-    return;
-  }
   const accion = disable ? 'desactivar' : 'activar';
   if(!confirm(`¿${accion.charAt(0).toUpperCase()+accion.slice(1)} a "${email}"?`)) return;
   try {
-    await adminFetch(`/admin/users/${uid}/status`, { method:'PATCH', body: JSON.stringify({active:!disable}) });
+    if(ADMIN_BACKEND_ONLINE){
+      await adminFetch(`/admin/users/${uid}/status`, { method:'PATCH', body: JSON.stringify({active:!disable}) });
+    } else {
+      await db.collection('users').doc(uid).set({ active:!disable, updatedAt:new Date().toISOString(), updatedBy: currentUser.email || 'system' }, { merge:true });
+    }
     showToast(`Usuario ${disable?'desactivado':'activado'} correctamente`);
     renderAdminPanel();
   } catch(e){ showToast('Error: '+e.message, true); }
 }
 
 async function sendPasswordReset(uid, email){
-  if(!ADMIN_BACKEND_ONLINE){
-    showToast('Accion no disponible sin backend admin.', true);
-    return;
-  }
   if(!confirm(`¿Enviar enlace de restablecimiento de contraseña a "${email}"?`)) return;
   try {
-    const res = await adminFetch(`/admin/users/${uid}/reset-password`, { method:'POST' });
-    showToast('Enlace generado — revisar consola del navegador');
-    console.log('Reset link:', res.resetLink);
+    if(ADMIN_BACKEND_ONLINE){
+      const res = await adminFetch(`/admin/users/${uid}/reset-password`, { method:'POST' });
+      showToast('Enlace generado — revisar consola del navegador');
+      console.log('Reset link:', res.resetLink);
+    } else {
+      await auth.sendPasswordResetEmail(email);
+      showToast(`Se envio enlace de restablecimiento a ${email}`);
+    }
   } catch(e){ showToast('Error: '+e.message, true); }
 }
 
