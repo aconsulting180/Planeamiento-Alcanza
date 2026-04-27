@@ -408,7 +408,9 @@ let _lastLocalSave = 0;
 let _unsubscribeSync = null;
 let _syncInterval = null;
 let _remoteVersion = '';
-const BACKEND_URL = 'https://planeamiento-alcanza-production.up.railway.app';
+const BACKEND_URL = (['localhost', '127.0.0.1'].includes(window.location.hostname))
+  ? 'http://localhost:3000'
+  : 'https://planeamiento-alcanza-production.up.railway.app';
 
 // ══════════════════════════════════════════════════════════════════
 // CONSTANTS & WEEKS
