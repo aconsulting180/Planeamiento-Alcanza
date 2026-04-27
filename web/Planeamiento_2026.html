@@ -2041,7 +2041,17 @@ auth.onAuthStateChanged(async user=>{
     window.location.href='login.html';
     return;
   }
-  const role = tokenResult.claims.role || (profile && profile.role) || 'user';
+  const claimRole = tokenResult.claims.role;
+  const profileRole = profile && profile.role;
+  const claimAllowed = claimRole === 'admin' || claimRole === 'user';
+  const profileAllowed = profileRole === 'admin' || profileRole === 'user';
+  if(!claimAllowed && !profileAllowed){
+    alert('Tu cuenta no tiene permisos para acceder al sistema. Contacta a un administrador.');
+    await auth.signOut();
+    window.location.href='login.html';
+    return;
+  }
+  const role = claimAllowed ? claimRole : profileRole;
   currentUserRole = role;
   if(role==='admin'){
     const adminNav = document.getElementById('nav-admin-section');
