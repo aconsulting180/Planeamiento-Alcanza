@@ -2033,25 +2033,28 @@ auth.onAuthStateChanged(async user=>{
   if(uAvatar&&user.photoURL){uAvatar.src=user.photoURL;uAvatar.style.display='';}
   if(uSection)uSection.style.display='flex';
   // Check role for admin panel visibility
-  const tokenResult = await user.getIdTokenResult(true);
   const profile = await loadCurrentUserProfile(user.uid);
-  if(profile && profile.active === false){
+  if(!profile){
+    alert('Tu cuenta no esta registrada en Gestion de Usuarios. Contacta a un administrador.');
+    await auth.signOut();
+    window.location.href='login.html';
+    return;
+  }
+  if(profile.active === false){
     alert('Tu usuario esta inactivo. Contacta a un administrador.');
     await auth.signOut();
     window.location.href='login.html';
     return;
   }
-  const claimRole = tokenResult.claims.role;
-  const profileRole = profile && profile.role;
-  const claimAllowed = claimRole === 'admin' || claimRole === 'user';
+  const profileRole = profile.role;
   const profileAllowed = profileRole === 'admin' || profileRole === 'user';
-  if(!claimAllowed && !profileAllowed){
+  if(!profileAllowed){
     alert('Tu cuenta no tiene permisos para acceder al sistema. Contacta a un administrador.');
     await auth.signOut();
     window.location.href='login.html';
     return;
   }
-  const role = claimAllowed ? claimRole : profileRole;
+  const role = profileRole;
   currentUserRole = role;
   if(role==='admin'){
     const adminNav = document.getElementById('nav-admin-section');
