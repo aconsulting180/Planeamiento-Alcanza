@@ -409,7 +409,7 @@ let _lastLocalSave = 0;
 let _unsubscribeSync = null;
 let _syncInterval = null;
 let _remoteVersion = '';
-let ADMIN_BACKEND_ONLINE = true;
+let ADMIN_BACKEND_ONLINE = false;
 let ADMIN_MODE_NOTICE_SHOWN = false;
 const BACKEND_URL = (['localhost', '127.0.0.1'].includes(window.location.hostname))
   ? 'http://localhost:3000'
@@ -2150,6 +2150,7 @@ async function renderAdminPanel(){
   </div>`;
 
   try {
+    if(!ADMIN_BACKEND_ONLINE) throw new Error('firestore-mode');
     const users = await adminFetch('/admin/users');
     ADMIN_BACKEND_ONLINE = true;
     const tbody = document.getElementById('admin-tbody');
