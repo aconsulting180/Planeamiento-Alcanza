@@ -8,7 +8,7 @@ service cloud.firestore {
     }
 
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email == 'alcanzagrupoinmobiliario@gmail.com';
+      return isSignedIn() && request.auth.token.email == 'yrvingleon@hotmail.com';
     }
 
     function profilePath() {
