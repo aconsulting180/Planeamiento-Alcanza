@@ -439,6 +439,16 @@ async function writeAuditLog(action, details = {}){
     console.warn('audit log error:', e.message);
   }
 }
+// Debounced audit — agrupa ediciones frecuentes en 5s por clave
+const _auditDebounceTimers = {};
+function writeAuditLogDebounced(action, details = {}, debounceKey = action){
+  if(_auditDebounceTimers[debounceKey]) clearTimeout(_auditDebounceTimers[debounceKey]);
+  _auditDebounceTimers[debounceKey] = setTimeout(() => {
+    delete _auditDebounceTimers[debounceKey];
+    writeAuditLog(action, details);
+  }, 5000);
+}
+const AREA_NAMES_AUDIT = {gis:'GIS',metro:'Metropolitano',inmob:'Inmobiliaria',const:'Constructora',rental:'CEQ Rental'};
 
 // ══════════════════════════════════════════════════════════════════
 // CONSTANTS & WEEKS
@@ -963,7 +973,7 @@ function save(){
   }
   showToast('Guardado');
 }
-function resetAll(){if(confirm('¿Seguro que deseas borrar TODOS los datos? No se puede deshacer.')){S=defaultState();save();location.reload();}}
+function resetAll(){if(confirm('¿Seguro que deseas borrar TODOS los datos? No se puede deshacer.')){writeAuditLog('data_reset_all',{warning:'Se borraron todos los datos del planeamiento'});S=defaultState();save();location.reload();}}
 
 // ══════════════════════════════════════════════════════════════════
 // UTILS
@@ -1314,6 +1324,7 @@ function laToggle(key,oi,ei,ai,wk,td){
   if(idx>=0){a.weeks.splice(idx,1);td.className='la-cell la-off';td.textContent='';}
   else{a.weeks.push(wk);a.weeks.sort((a,b)=>a-b);td.className='la-cell la-on';td.textContent='■';}
   save();
+  writeAuditLogDebounced('lookahead_edit',{area:AREA_NAMES_AUDIT[key]||key,actividad:a.act||a.cod},'la-toggle-'+key);
 }
 function laEditOG(key,oi,txt){
   const p=txt.split('|');S.la[key][oi].og=(p[0]||'').trim();S.la[key][oi].og_desc=(p.slice(1).join('|')||'').trim();save();
@@ -1323,7 +1334,7 @@ function laEditOE(key,oi,ei,field,txt){
   else S.la[key][oi].oes[ei][field]=txt;
   save();
 }
-function laEditAct(key,oi,ei,ai,field,txt){S.la[key][oi].oes[ei].acts[ai][field]=txt;save();}
+function laEditAct(key,oi,ei,ai,field,txt){S.la[key][oi].oes[ei].acts[ai][field]=txt;save();writeAuditLogDebounced('lookahead_edit',{area:AREA_NAMES_AUDIT[key]||key,campo:field},'la-edit-'+key);}
 
 // Add OG
 function laAddOG(key){
@@ -1359,9 +1370,9 @@ function laAddAct(key,oi,ei){
   });
 }
 // Delete
-function laDelOG(key,oi){if(confirm('¿Eliminar este Objetivo General y todo su contenido?')){S.la[key].splice(oi,1);save();renderLA(key);}}
-function laDelOE(key,oi,ei){if(confirm('¿Eliminar este OE y sus actividades?')){S.la[key][oi].oes.splice(ei,1);save();renderLA(key);}}
-function laDelAct(key,oi,ei,ai){if(confirm('¿Eliminar esta actividad?')){S.la[key][oi].oes[ei].acts.splice(ai,1);save();renderLA(key);}}
+function laDelOG(key,oi){if(confirm('¿Eliminar este Objetivo General y todo su contenido?')){const og=S.la[key][oi].og;S.la[key].splice(oi,1);save();writeAuditLog('lookahead_delete_og',{area:AREA_NAMES_AUDIT[key]||key,og});renderLA(key);}}
+function laDelOE(key,oi,ei){if(confirm('¿Eliminar este OE y sus actividades?')){const oe=S.la[key][oi].oes[ei].oe;S.la[key][oi].oes.splice(ei,1);save();writeAuditLog('lookahead_delete_oe',{area:AREA_NAMES_AUDIT[key]||key,oe});renderLA(key);}}
+function laDelAct(key,oi,ei,ai){if(confirm('¿Eliminar esta actividad?')){const act=S.la[key][oi].oes[ei].acts[ai].act;S.la[key][oi].oes[ei].acts.splice(ai,1);save();writeAuditLog('lookahead_delete_act',{area:AREA_NAMES_AUDIT[key]||key,actividad:act});renderLA(key);}}
 function laMoveAct(key,oi,ei,ai,dir){const acts=S.la[key][oi].oes[ei].acts;const ni=ai+dir;if(ni<0||ni>=acts.length)return;[acts[ai],acts[ni]]=[acts[ni],acts[ai]];save();renderLA(key);}
 
 // ══════════════════════════════════════════════════════════════════
@@ -1461,9 +1472,11 @@ function pmTogglePlan(key,pk,m,val){
   if(!S.pm[key][pk][m])S.pm[key][pk][m]={plan:false,status:'No Iniciado',avance:0};
   S.pm[key][pk][m].plan=val;
   save();renderPM(key);
+  writeAuditLogDebounced('plan_mensual_edit',{area:AREA_NAMES_AUDIT[key]||key,mes:m,accion:val?'planificado':'desplanificado'},'pm-plan-'+key);
 }
 function pmSet(key,pk,m,field,val){
   S.pm[key][pk][m][field]=val;save();pmUpdateSummary(key);pmCharts(key);
+  writeAuditLogDebounced('plan_mensual_edit',{area:AREA_NAMES_AUDIT[key]||key,mes:m,campo:field,valor:val},'pm-set-'+key);
 }
 
 function pmUpdateSummary(key){
@@ -1597,6 +1610,7 @@ function ppcSet(key,pk,m,f,v){
   if(!S.ppc[key][pk][m])S.ppc[key][pk][m]={compr:false,ejec:false};
   S.ppc[key][pk][m][f]=v;
   save();ppcSummary(key);ppcChartsDraw(key);
+  writeAuditLogDebounced('ppc_edit',{area:AREA_NAMES_AUDIT[key]||key,mes:m,campo:f,valor:v},'ppc-'+key);
 }
 
 function calcPPCData(key){
@@ -1701,11 +1715,12 @@ function arAdd(key){
     imp:document.getElementById(`ar-imp-${key}`).value,estado:'Pendiente',mitigacion:'',fechaIdent:new Date().toISOString().split('T')[0]};
   if(!r.desc){showToast('Ingrese descripción');return;}
   S.ar[key].push(r);save();arRender(key);
+  writeAuditLog('restriccion_add',{area:AREA_NAMES_AUDIT[key]||key,cod:r.cod,desc:r.desc,tipo:r.tipo,impacto:r.imp});
   document.getElementById(`ar-desc-${key}`).value='';document.getElementById(`ar-cod-${key}`).value='';
   showToast('Restricción agregada');
 }
-function arDel(key,i){if(confirm('¿Eliminar?')){S.ar[key].splice(i,1);save();arRender(key);}}
-function arUpd(key,i,f,v){S.ar[key][i][f]=v;save();arRender(key);}
+function arDel(key,i){if(confirm('¿Eliminar?')){const r=S.ar[key][i];S.ar[key].splice(i,1);save();writeAuditLog('restriccion_delete',{area:AREA_NAMES_AUDIT[key]||key,cod:r.cod,desc:r.desc});arRender(key);}}
+function arUpd(key,i,f,v){const old=S.ar[key][i][f];S.ar[key][i][f]=v;save();writeAuditLogDebounced('restriccion_edit',{area:AREA_NAMES_AUDIT[key]||key,campo:f,valorNuevo:v,valorAnterior:old},'ar-upd-'+key+'-'+i);arRender(key);}
 
 function arRender(key){
   const body=document.getElementById(`ar-body-${key}`);if(!body)return;
@@ -2365,41 +2380,89 @@ async function renderAuditPanel(){
   }
 
   page.innerHTML = `<div class="page-header">
-    <h2 style="margin:0"><i class="ri-file-list-3-line"></i> Registro de Accesos</h2>
+    <h2 style="margin:0"><i class="ri-file-list-3-line"></i> Registro de Actividad</h2>
     <button class="btn btn-outline btn-sm" onclick="renderAuditPanel()"><i class="ri-refresh-line"></i> Actualizar</button>
   </div>
   <div class="card">
     <div class="card-body">
-      <div style="margin-bottom:10px;color:#666;font-size:12px">Solo visible para ${SUPERADMIN_EMAIL}</div>
+      <div style="margin-bottom:10px;color:#666;font-size:12px">Solo visible para <strong>${SUPERADMIN_EMAIL}</strong> &nbsp;|&nbsp; Últimos 500 eventos</div>
       <div class="admin-table-wrap">
         <table class="admin-table">
-          <thead><tr><th>Fecha</th><th>Acción</th><th>Usuario</th><th>Detalle</th></tr></thead>
-          <tbody id="audit-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Cargando registros...</td></tr></tbody>
+          <thead><tr><th>Fecha/Hora</th><th>Evento</th><th>Usuario</th><th>Área</th><th>Detalle</th></tr></thead>
+          <tbody id="audit-tbody"><tr><td colspan="5" style="text-align:center;padding:30px;color:#999">Cargando registros...</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>`;
 
+  // Etiquetas legibles por tipo de acción
+  const ACTION_LABELS = {
+    login:                   {label:'Inicio de sesión',      color:'#2E5090', icon:'ri-login-box-line'},
+    logout:                  {label:'Cierre de sesión',      color:'#595959', icon:'ri-logout-box-line'},
+    user_create:             {label:'Usuario creado',        color:'#006100', icon:'ri-user-add-line'},
+    user_role_change:        {label:'Rol cambiado',          color:'#856404', icon:'ri-exchange-line'},
+    user_status_change:      {label:'Estado usuario',        color:'#ED7D31', icon:'ri-user-settings-line'},
+    user_reset_password:     {label:'Reset contraseña',      color:'#4472C4', icon:'ri-lock-password-line'},
+    project_create:          {label:'Proyecto creado',       color:'#006100', icon:'ri-add-box-line'},
+    project_delete:          {label:'Proyecto eliminado',    color:'#C00000', icon:'ri-delete-bin-line'},
+    data_reset_all:          {label:'RESET TOTAL DATOS',     color:'#C00000', icon:'ri-alarm-warning-line'},
+    lookahead_edit:          {label:'Lookahead editado',     color:'#2E5090', icon:'ri-edit-line'},
+    lookahead_delete_og:     {label:'OG eliminado',          color:'#C00000', icon:'ri-delete-bin-line'},
+    lookahead_delete_oe:     {label:'OE eliminado',          color:'#C00000', icon:'ri-delete-bin-line'},
+    lookahead_delete_act:    {label:'Actividad eliminada',   color:'#C00000', icon:'ri-delete-bin-line'},
+    plan_mensual_edit:       {label:'Plan Mensual editado',  color:'#548235', icon:'ri-task-line'},
+    ppc_edit:                {label:'PPC editado',           color:'#7B2D8E', icon:'ri-percent-line'},
+    restriccion_add:         {label:'Restricción agregada',  color:'#C00000', icon:'ri-alarm-warning-line'},
+    restriccion_delete:      {label:'Restricción eliminada', color:'#C00000', icon:'ri-delete-bin-line'},
+    restriccion_edit:        {label:'Restricción editada',   color:'#ED7D31', icon:'ri-edit-line'},
+  };
+
   try {
-    const snap = await db.collection('audit_logs').orderBy('ts','desc').limit(300).get();
+    const snap = await db.collection('audit_logs').orderBy('ts','desc').limit(500).get();
     const tbody = document.getElementById('audit-tbody');
     if(!snap.size){
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Sin registros</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#999">Sin registros</td></tr>';
       return;
     }
     tbody.innerHTML = snap.docs.map(doc => {
       const r = doc.data() || {};
       const dt = r.ts && r.ts.toDate ? r.ts.toDate() : null;
-      const when = dt ? dt.toLocaleString('es-PE') : '—';
-      const action = escHtml(r.action || '—');
+      const when = dt ? dt.toLocaleString('es-PE',{dateStyle:'short',timeStyle:'medium'}) : '—';
+      const info = ACTION_LABELS[r.action] || {label: r.action||'—', color:'#333', icon:'ri-information-line'};
       const actor = escHtml(r.actorEmail || r.actorUid || '—');
-      const detail = escHtml(JSON.stringify(r.details || {}));
-      return `<tr><td>${when}</td><td><strong>${action}</strong></td><td>${actor}</td><td style="font-size:11px;color:#666">${detail}</td></tr>`;
+      const d = r.details || {};
+      const area = escHtml(d.area || d.projectKey || '—');
+      // Construir detalle legible
+      let detail = '';
+      if(r.action === 'login') detail = `rol: ${escHtml(d.role||'—')}`;
+      else if(r.action === 'user_create') detail = `${escHtml(d.email||'—')} → ${escHtml(d.role||'—')}`;
+      else if(r.action === 'user_role_change') detail = `${escHtml(d.email||'—')} → ${escHtml(d.role||'—')}`;
+      else if(r.action === 'user_status_change') detail = `${escHtml(d.email||'—')} → ${d.active?'Activo':'Inactivo'}`;
+      else if(r.action === 'data_reset_all') detail = `<strong style="color:#c00">⚠ TODOS LOS DATOS BORRADOS</strong>`;
+      else if(r.action === 'lookahead_edit') detail = escHtml(d.actividad||d.campo||'edición');
+      else if(r.action === 'lookahead_delete_act') detail = escHtml(d.actividad||'—');
+      else if(r.action === 'lookahead_delete_og') detail = escHtml(d.og||'—');
+      else if(r.action === 'lookahead_delete_oe') detail = escHtml(d.oe||'—');
+      else if(r.action === 'plan_mensual_edit') detail = `mes ${d.mes||'—'}: ${escHtml(String(d.accion||d.campo||''))} ${d.valor!==undefined?'= '+escHtml(String(d.valor)):''}`;
+      else if(r.action === 'ppc_edit') detail = `mes ${d.mes||'—'}: ${escHtml(String(d.campo||''))} = ${d.valor?'✓':'✗'}`;
+      else if(r.action === 'restriccion_add') detail = `[${escHtml(d.cod||'')}] ${escHtml(d.desc||'')} (${escHtml(d.impacto||'')})`;
+      else if(r.action === 'restriccion_delete') detail = `[${escHtml(d.cod||'')}] ${escHtml(d.desc||'')}`;
+      else if(r.action === 'restriccion_edit') detail = `${escHtml(d.campo||'—')}: ${escHtml(String(d.valorAnterior||''))} → ${escHtml(String(d.valorNuevo||''))}`;
+      else if(r.action === 'project_create') detail = escHtml(d.projectName||d.projectKey||'—');
+      else if(r.action === 'project_delete') detail = escHtml(d.projectKey||'—');
+      else detail = escHtml(JSON.stringify(d));
+      return `<tr>
+        <td style="white-space:nowrap;font-size:11px">${when}</td>
+        <td><span style="color:${info.color};font-weight:600;white-space:nowrap"><i class="${info.icon}"></i> ${info.label}</span></td>
+        <td style="font-size:12px">${actor}</td>
+        <td style="font-size:11px;color:#666">${area}</td>
+        <td style="font-size:11px;color:#555">${detail}</td>
+      </tr>`;
     }).join('');
   } catch(e){
     const tbody = document.getElementById('audit-tbody');
     if(tbody){
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:#c00">${escHtml(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:30px;color:#c00">${escHtml(e.message)}</td></tr>`;
     }
   }
 }
