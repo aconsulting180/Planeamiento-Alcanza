@@ -408,9 +408,10 @@ let _lastLocalSave = 0;
 let _unsubscribeSync = null;
 let _syncInterval = null;
 let _remoteVersion = '';
+let ADMIN_BACKEND_ONLINE = true;
 const BACKEND_URL = (['localhost', '127.0.0.1'].includes(window.location.hostname))
   ? 'http://localhost:3000'
-  : 'https://planeamiento-alcanza-production.up.railway.app';
+  : 'https://us-central1-planeamiento-alcanza.cloudfunctions.net/api';
 
 // ══════════════════════════════════════════════════════════════════
 // CONSTANTS & WEEKS
@@ -2073,6 +2074,21 @@ async function adminFetch(path, options={}){
   return data;
 }
 
+async function loadUsersFromFirestore(){
+  const snap = await db.collection('users').get();
+  return snap.docs.map(doc => {
+    const u = doc.data() || {};
+    return {
+      uid: doc.id,
+      email: u.email || '',
+      displayName: u.displayName || '',
+      role: u.role || 'user',
+      disabled: u.active === false,
+      creationTime: u.createdAt || null,
+    };
+  });
+}
+
 async function renderAdminPanel(){
   const page = document.getElementById('page-admin');
   page.innerHTML = `<div class="page-header">
@@ -2081,7 +2097,7 @@ async function renderAdminPanel(){
   <div style="padding:0 24px 24px">
     <div class="admin-toolbar">
       <div style="color:#555;font-size:13px" id="admin-count">Cargando usuarios...</div>
-      <button class="btn btn-green" onclick="openCreateUserModal()"><i class="ri-user-add-line"></i> Nuevo Usuario</button>
+      <button class="btn btn-green" id="btn-admin-create" onclick="openCreateUserModal()"><i class="ri-user-add-line"></i> Nuevo Usuario</button>
     </div>
     <div class="admin-table-wrap">
       <table class="admin-table">
@@ -2095,6 +2111,7 @@ async function renderAdminPanel(){
 
   try {
     const users = await adminFetch('/admin/users');
+    ADMIN_BACKEND_ONLINE = true;
     const tbody = document.getElementById('admin-tbody');
     document.getElementById('admin-count').textContent = `${users.length} usuario${users.length!==1?'s':''} registrados`;
     if(!users.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">Sin usuarios</td></tr>'; return; }
@@ -2116,14 +2133,45 @@ async function renderAdminPanel(){
         </td>
       </tr>`).join('');
   } catch(e){
-    document.getElementById('admin-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:30px;color:#c00">${e.message}</td></tr>`;
-    showToast('Error al cargar usuarios: '+e.message, true);
+    try {
+      ADMIN_BACKEND_ONLINE = false;
+      const users = await loadUsersFromFirestore();
+      const tbody = document.getElementById('admin-tbody');
+      const createBtn = document.getElementById('btn-admin-create');
+      if (createBtn) {
+        createBtn.disabled = true;
+        createBtn.style.opacity = '0.55';
+        createBtn.title = 'Habilita Firebase Functions (Blaze) para gestionar usuarios.';
+      }
+      document.getElementById('admin-count').textContent = `${users.length} usuario${users.length!==1?'s':''} (modo lectura Firestore)`;
+      if(!users.length){
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#aaa">Sin usuarios</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u=>`
+        <tr>
+          <td><strong>${escHtml(u.displayName||'—')}</strong></td>
+          <td>${escHtml(u.email||'—')}</td>
+          <td><span class="role-badge ${u.role||'user'}">${u.role==='admin'?'Admin':'Usuario'}</span></td>
+          <td><span class="status-chip ${u.disabled?'inactive':'active'}">${u.disabled?'Inactivo':'Activo'}</span></td>
+          <td style="color:#888;font-size:11px">${u.creationTime?new Date(u.creationTime).toLocaleDateString('es-PE'):'—'}</td>
+          <td style="color:#888;font-size:11px">Requiere backend admin (Functions)</td>
+        </tr>`).join('');
+      showToast('Backend admin no disponible: se activo modo lectura desde Firestore.', true);
+    } catch(fbErr) {
+      document.getElementById('admin-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:30px;color:#c00">${fbErr.message}</td></tr>`;
+      showToast('Error al cargar usuarios: '+fbErr.message, true);
+    }
   }
 }
 
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function openCreateUserModal(){
+  if(!ADMIN_BACKEND_ONLINE){
+    showToast('Modo gratis activo: para crear/editar usuarios debes habilitar Firebase Functions (plan Blaze).', true);
+    return;
+  }
   const overlay = document.createElement('div');
   overlay.className = 'admin-modal-overlay';
   overlay.id = 'admin-modal';
@@ -2170,6 +2218,10 @@ async function submitCreateUser(){
 }
 
 async function changeUserRole(uid, currentRole, email){
+  if(!ADMIN_BACKEND_ONLINE){
+    showToast('Accion no disponible sin backend admin.', true);
+    return;
+  }
   const newRole = currentRole==='admin' ? 'user' : 'admin';
   if(!confirm(`Cambiar rol de "${email}" a ${newRole==='admin'?'Admin':'Usuario'}?`)) return;
   try {
@@ -2180,16 +2232,24 @@ async function changeUserRole(uid, currentRole, email){
 }
 
 async function toggleUserStatus(uid, disable, email){
+  if(!ADMIN_BACKEND_ONLINE){
+    showToast('Accion no disponible sin backend admin.', true);
+    return;
+  }
   const accion = disable ? 'desactivar' : 'activar';
   if(!confirm(`¿${accion.charAt(0).toUpperCase()+accion.slice(1)} a "${email}"?`)) return;
   try {
-    await adminFetch(`/admin/users/${uid}/status`, { method:'PATCH', body: JSON.stringify({disabled:disable}) });
+    await adminFetch(`/admin/users/${uid}/status`, { method:'PATCH', body: JSON.stringify({active:!disable}) });
     showToast(`Usuario ${disable?'desactivado':'activado'} correctamente`);
     renderAdminPanel();
   } catch(e){ showToast('Error: '+e.message, true); }
 }
 
 async function sendPasswordReset(uid, email){
+  if(!ADMIN_BACKEND_ONLINE){
+    showToast('Accion no disponible sin backend admin.', true);
+    return;
+  }
   if(!confirm(`¿Enviar enlace de restablecimiento de contraseña a "${email}"?`)) return;
   try {
     const res = await adminFetch(`/admin/users/${uid}/reset-password`, { method:'POST' });
