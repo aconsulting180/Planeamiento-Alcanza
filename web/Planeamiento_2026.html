@@ -273,6 +273,7 @@ tr:hover .row-move{opacity:1;}
     <div id="nav-admin-section" style="display:none">
       <div class="area-label" style="cursor:default">Administración <span class="admin-badge">ADMIN</span></div>
       <div class="nav-item" onclick="showPage('admin')"><span class="icon"><i class="ri-shield-user-line"></i></span><span>Gestión de Usuarios</span></div>
+      <div class="nav-item" id="nav-audit-item" style="display:none" onclick="showPage('audit')"><span class="icon"><i class="ri-file-list-3-line"></i></span><span>Registro de Accesos</span></div>
     </div>
   </div>
   <div class="sidebar-user" id="sidebar-user" style="display:none">
@@ -383,6 +384,7 @@ tr:hover .row-move{opacity:1;}
   <!-- Páginas de proyectos adicionales -->
   <div id="extra-project-pages"></div>
   <div class="page" id="page-admin"></div>
+  <div class="page" id="page-audit"></div>
 </div>
 
 <script>
@@ -411,9 +413,32 @@ let _syncInterval = null;
 let _remoteVersion = '';
 let ADMIN_BACKEND_ONLINE = false;
 let ADMIN_MODE_NOTICE_SHOWN = false;
+const SUPERADMIN_EMAIL = 'alcanzagrupoinmobiliario@gmail.com';
 const BACKEND_URL = (['localhost', '127.0.0.1'].includes(window.location.hostname))
   ? 'http://localhost:3000'
   : 'https://us-central1-planeamiento-alcanza.cloudfunctions.net/api';
+
+function isSuperAdminUser(){
+  return !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === SUPERADMIN_EMAIL);
+}
+
+async function writeAuditLog(action, details = {}){
+  try {
+    if(!currentUser) return;
+    await db.collection('audit_logs').add({
+      action,
+      details,
+      actorUid: currentUser.uid || '',
+      actorEmail: currentUser.email || '',
+      actorName: currentUser.displayName || '',
+      path: window.location.pathname || '',
+      userAgent: navigator.userAgent || '',
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    console.warn('audit log error:', e.message);
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════
 // CONSTANTS & WEEKS
@@ -867,6 +892,7 @@ function refreshCurrentPage(){
   else if(curPage==='dashboard')updateDash();
   else if(curPage==='dashboard-global')renderDashGlobal();
   else if(curPage==='admin')renderAdminPanel();
+  else if(curPage==='audit')renderAuditPanel();
 }
 function applyRemoteUpdate(data){
   const v=JSON.stringify(data);
@@ -974,6 +1000,7 @@ function showPage(id){
     if(id==='dashboard')updateDash();
     if(id==='dashboard-global')renderDashGlobal();
     if(id==='admin')renderAdminPanel();
+    if(id==='audit')renderAuditPanel();
     window.scrollTo(0,0);
   }catch(e){
     console.error('showPage error:',e);
@@ -1147,6 +1174,7 @@ function submitCreateProject(){
   initProjects();
   closeProjectModal();
   showToast('Proyecto "'+name+'" creado');
+  writeAuditLog('project_create', { projectKey: rawKey, projectName: name });
   setTimeout(()=>showPage('la-'+rawKey), 300);
 }
 
@@ -1163,6 +1191,7 @@ function deleteProject(key){
   save();
   initProjects();
   showPage('dashboard');
+  writeAuditLog('project_delete', { projectKey: key });
 }
 
 // Flatten activities for a key
@@ -2063,6 +2092,9 @@ auth.onAuthStateChanged(async user=>{
     const adminNav = document.getElementById('nav-admin-section');
     if(adminNav) adminNav.style.display='none';
   }
+  const auditNav = document.getElementById('nav-audit-item');
+  if(auditNav) auditNav.style.display = isSuperAdminUser() ? '' : 'none';
+  await writeAuditLog('login', { role, source: 'auth.onAuthStateChanged' });
   // Mostrar "Crear Proyecto" solo a admins
   const addProjBtn = document.getElementById('nav-add-project');
   if(addProjBtn) addProjBtn.style.display = role==='admin' ? '' : 'none';
@@ -2072,8 +2104,9 @@ auth.onAuthStateChanged(async user=>{
   initProjects();
   updateDash();
 });
-function logout(){
+async function logout(){
   if(confirm('¿Cerrar sesión?')){
+    await writeAuditLog('logout', { source: 'manual' });
     if(_unsubscribeSync){_unsubscribeSync();_unsubscribeSync=null;}
     if(_syncInterval){clearInterval(_syncInterval);_syncInterval=null;}
     auth.signOut().then(()=>window.location.href='login.html');
@@ -2272,6 +2305,7 @@ async function submitCreateUser(){
     }
     closeAdminModal();
     showToast(`Usuario ${email} creado correctamente`);
+    await writeAuditLog('user_create', { email, role });
     renderAdminPanel();
   } catch(e){ errEl.textContent = e.message; }
 }
@@ -2286,6 +2320,7 @@ async function changeUserRole(uid, currentRole, email){
       await db.collection('users').doc(uid).set({ role:newRole, updatedAt:new Date().toISOString(), updatedBy: currentUser.email || 'system' }, { merge:true });
     }
     showToast(`Rol actualizado a ${newRole}`);
+    await writeAuditLog('user_role_change', { uid, email, role: newRole });
     renderAdminPanel();
   } catch(e){ showToast('Error: '+e.message, true); }
 }
@@ -2300,6 +2335,7 @@ async function toggleUserStatus(uid, disable, email){
       await db.collection('users').doc(uid).set({ active:!disable, updatedAt:new Date().toISOString(), updatedBy: currentUser.email || 'system' }, { merge:true });
     }
     showToast(`Usuario ${disable?'desactivado':'activado'} correctamente`);
+    await writeAuditLog('user_status_change', { uid, email, active: !disable });
     renderAdminPanel();
   } catch(e){ showToast('Error: '+e.message, true); }
 }
@@ -2315,7 +2351,57 @@ async function sendPasswordReset(uid, email){
       await auth.sendPasswordResetEmail(email);
       showToast(`Se envio enlace de restablecimiento a ${email}`);
     }
+    await writeAuditLog('user_reset_password', { uid, email });
   } catch(e){ showToast('Error: '+e.message, true); }
+}
+
+async function renderAuditPanel(){
+  const page = document.getElementById('page-audit');
+  if(!page) return;
+  if(!isSuperAdminUser()){
+    page.innerHTML = `<div class="page-header"><h2 style="margin:0"><i class="ri-file-list-3-line"></i> Registro de Accesos</h2></div>
+      <div class="card"><div class="card-body" style="color:#c00">Acceso denegado. Solo disponible para el superadmin.</div></div>`;
+    return;
+  }
+
+  page.innerHTML = `<div class="page-header">
+    <h2 style="margin:0"><i class="ri-file-list-3-line"></i> Registro de Accesos</h2>
+    <button class="btn btn-outline btn-sm" onclick="renderAuditPanel()"><i class="ri-refresh-line"></i> Actualizar</button>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div style="margin-bottom:10px;color:#666;font-size:12px">Solo visible para ${SUPERADMIN_EMAIL}</div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Fecha</th><th>Acción</th><th>Usuario</th><th>Detalle</th></tr></thead>
+          <tbody id="audit-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Cargando registros...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+
+  try {
+    const snap = await db.collection('audit_logs').orderBy('ts','desc').limit(300).get();
+    const tbody = document.getElementById('audit-tbody');
+    if(!snap.size){
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Sin registros</td></tr>';
+      return;
+    }
+    tbody.innerHTML = snap.docs.map(doc => {
+      const r = doc.data() || {};
+      const dt = r.ts && r.ts.toDate ? r.ts.toDate() : null;
+      const when = dt ? dt.toLocaleString('es-PE') : '—';
+      const action = escHtml(r.action || '—');
+      const actor = escHtml(r.actorEmail || r.actorUid || '—');
+      const detail = escHtml(JSON.stringify(r.details || {}));
+      return `<tr><td>${when}</td><td><strong>${action}</strong></td><td>${actor}</td><td style="font-size:11px;color:#666">${detail}</td></tr>`;
+    }).join('');
+  } catch(e){
+    const tbody = document.getElementById('audit-tbody');
+    if(tbody){
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:#c00">${escHtml(e.message)}</td></tr>`;
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════

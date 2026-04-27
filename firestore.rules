@@ -7,6 +7,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'alcanzagrupoinmobiliario@gmail.com';
+    }
+
     function profilePath() {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
@@ -45,6 +49,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read:  if isSignedIn() && (isAdmin() || request.auth.uid == userId);
       allow write: if isAdmin();
+    }
+
+    // ── Auditoría de accesos y acciones ───────────────────────────────────────
+    match /audit_logs/{logId} {
+      allow create: if isUser();
+      allow read: if isSuperAdmin();
+      allow update, delete: if false;
     }
   }
 }
